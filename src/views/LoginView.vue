@@ -108,7 +108,7 @@ function onForgotClick() {
   --primary-blue: #0072CE;
   --dark-blue: #003366;
   --accent-orange: #FF7A00;
-  --card-bg: rgba(15, 23, 36, 0.55);
+  --card-bg: rgba(15, 23, 36, 0.90);
 }
 
 .login-page {
@@ -143,7 +143,7 @@ function onForgotClick() {
   background: linear-gradient(135deg, rgba(0, 114, 206, 0.3), rgba(255, 122, 0, 0.15));
   padding: 2px;
   border-radius: 24px;
-  box-shadow: 0px 10px 35px rgba(0, 0, 0, 0.8), 0px 0px 20px rgba(0, 114, 206, 0.2);
+  box-shadow: 0px 10px 35px rgba(56, 152, 216, 0.8), 0px 0px 20px rgba(67, 162, 218, 0.2);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
 }
 
@@ -153,9 +153,10 @@ function onForgotClick() {
 }
 
 .form {
-  width: 320px;
+  width: 390px;
   padding: 2.5em 2em;
-  background-color: var(--card-bg);
+  background-color: rgba(15, 23, 36, 0.6); /* o un color sólido en lugar de blanco/gris */
+  color: #fff;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 22px;
@@ -216,7 +217,7 @@ function onForgotClick() {
 .input-icon {
   height: 1.2em;
   width: 1.2em;
-  fill: #8a99ad;
+  fill: #ffffff;
   transition: fill 0.3s ease;
   flex-shrink: 0;
 }
@@ -236,7 +237,7 @@ function onForgotClick() {
 }
 
 .input-field::placeholder {
-  color: #a0aec0;
+  color: #ffffff;
 }
 
 .error-text {
@@ -266,7 +267,7 @@ function onForgotClick() {
   border: none;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
-  background: linear-gradient(135deg, #0072CE 0%, #004b87 100%);
+  background: linear-gradient(135deg, #0072CE 0%, #227cc5 100%);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
