@@ -77,7 +77,7 @@ defineEmits(['click'])
    ============================================ */
 .btn-custom:hover:not(:disabled) {
   background: #315cfd;
-  color: #e0f2fe;
+  color: white;
   font-size: 1.1em;
   box-shadow: 0 4px 15px rgba(49, 92, 253, 0.4);
 }
