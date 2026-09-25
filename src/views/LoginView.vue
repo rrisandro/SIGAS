@@ -204,20 +204,37 @@ async function handleLogin() {
   }
 }
 
-// Proceso de Registro Completo
+// Proceso de Registro Completo (Actualizado para prevenir duplicados)
 async function handleRegister() {
   regError.value = ''
   loadingReg.value = true
 
+  const emailTrimmed = regEmail.value.trim()
+
   // 1. Crear usuario en Authentication de Supabase
   const { data: authData, error: authErr } = await supabase.auth.signUp({
-    email: regEmail.value.trim(),
+    email: emailTrimmed,
     password: regPassword.value,
   })
 
   if (authErr) {
-    regError.value = authErr.message
     loadingReg.value = false
+    if (
+      authErr.message.toLowerCase().includes('already registered') || 
+      authErr.message.toLowerCase().includes('already exists') ||
+      authErr.status === 422
+    ) {
+      regError.value = 'Este correo electrónico ya está registrado. Inicia sesión.'
+    } else {
+      regError.value = authErr.message
+    }
+    return
+  }
+
+  // Validación extra por seguridad si Supabase devuelve identidades vacías en reintentos
+  if (authData?.user?.identities && authData.user.identities.length === 0) {
+    loadingReg.value = false
+    regError.value = 'Este correo electrónico ya se encuentra registrado en el sistema.'
     return
   }
 
@@ -240,7 +257,7 @@ async function handleRegister() {
   } else {
     mostrarModal.value = false
     notice.value = '¡Registro exitoso! Ya puedes iniciar sesión.'
-    loginEmail.value = regEmail.value
+    loginEmail.value = emailTrimmed
     loginPassword.value = ''
   }
 }

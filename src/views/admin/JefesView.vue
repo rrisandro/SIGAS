@@ -1,136 +1,81 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="admin-page">
+    <header class="header-banner">
       <div>
-        <h2 class="text-xl font-medium text-gray-700">Jefes de Calle</h2>
-        <p class="text-sm text-gray-500">CRUD de jefes asignados</p>
+        <div class="badge">Líderes Comunales</div>
+        <h1>Jefes de Calle Registrados</h1>
+        <p>Listado de responsables asignados por sector en Supabase</p>
       </div>
-      <BaseButton @click="openCreate">Nuevo jefe</BaseButton>
+    </header>
+
+    <div class="table-card">
+      <div v-if="loading" class="loading-state"><div class="spinner"></div>Cargando jefes...</div>
+      
+      <div v-else-if="jefes.length === 0" class="empty-state">
+        No hay Jefes de Calle registrados actualmente (Cargo ID: 2).
+      </div>
+
+      <div v-else class="table-wrapper">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Cédula</th>
+              <th>Nombre Completo</th>
+              <th>Calle Asignada</th>
+              <th>Cargo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="jefe in jefes" :key="jefe.id">
+              <td class="id-cell">V-{{ jefe.id }}</td>
+              <td>{{ jefe.nombre_familia }}</td>
+              <td><span class="badge-calle">{{ jefe.calles?.nombre || 'Sin asignar' }}</span></td>
+              <td><span class="badge-jefe">Jefe de Calle</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-
-    <CrudDataTable
-      :columns="columns"
-      :rows="rows"
-      :search-keys="['nombre', 'cedula', 'calle', 'telefono']"
-    >
-      <template #cell-activo="{ row }">
-        <div class="flex items-center gap-2">
-          <ToggleSwitch :model-value="row.activo" @update:model-value="toggle(row)" />
-          <StatusBadge :status="row.activo ? 'activo' : 'inactivo'" />
-        </div>
-      </template>
-      <template #actions="{ row }">
-        <BaseButton size="sm" variant="outline" @click="openEdit(row)">Editar</BaseButton>
-      </template>
-    </CrudDataTable>
-
-    <Teleport to="body">
-      <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-gray-700/30" @click="showForm = false" />
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-          <h3 class="text-lg font-medium text-gray-700">{{ editing ? 'Editar jefe' : 'Nuevo jefe' }}</h3>
-          <div class="mt-4 space-y-3">
-            <BaseInput v-model="form.nombre" label="Nombre" />
-            <BaseInput v-model="form.cedula" label="Cédula" />
-            <BaseInput v-model="form.telefono" label="Teléfono" />
-            <BaseSelect v-model="form.calleId" label="Calle" :options="calleOptions" />
-          </div>
-          <div class="mt-6 flex justify-end gap-2">
-            <BaseButton variant="ghost" @click="showForm = false">Cancelar</BaseButton>
-            <BaseButton @click="save">Guardar</BaseButton>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import CrudDataTable from '../../components/ui/CrudDataTable.vue'
-import BaseButton from '../../components/ui/BaseButton.vue'
-import BaseInput from '../../components/ui/BaseInput.vue'
-import BaseSelect from '../../components/ui/BaseSelect.vue'
-import ToggleSwitch from '../../components/ui/ToggleSwitch.vue'
-import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { useAuth } from '../../composables/useAuth.js'
-import { useMockData } from '../../composables/useMockData.js'
+import { ref, onMounted } from 'vue'
+import { supabase } from '../../composables/supabase.js'
 
-const { currentUser } = useAuth()
-const { jefes, calles, addJefe, updateJefe, toggleActivo, addAuditoria, getCalleNombre } = useMockData()
+const jefes = ref([])
+const loading = ref(true)
 
-const columns = [
-  { key: 'id', label: '#' },
-  { key: 'nombre', label: 'Nombre' },
-  { key: 'cedula', label: 'Cédula' },
-  { key: 'calle', label: 'Calle' },
-  { key: 'telefono', label: 'Teléfono' },
-  { key: 'activo', label: 'Estado' },
-]
+async function cargarJefes() {
+  loading.value = true
+  const { data } = await supabase
+    .from('familias')
+    .select('*, calles(nombre)')
+    .eq('id_cargo', 2)
 
-const rows = computed(() =>
-  jefes.value.map((j) => ({ ...j, calle: getCalleNombre(j.calleId) }))
-)
-
-const calleOptions = computed(() =>
-  calles.value.filter((c) => c.activo).map((c) => ({ value: c.id, label: c.nombre }))
-)
-
-const showForm = ref(false)
-const editing = ref(null)
-const form = reactive({ nombre: '', cedula: '', telefono: '', calleId: '' })
-
-function openCreate() {
-  editing.value = null
-  Object.assign(form, { nombre: '', cedula: '', telefono: '', calleId: '' })
-  showForm.value = true
+  if (data) jefes.value = data
+  loading.value = false
 }
 
-function openEdit(row) {
-  editing.value = row
-  Object.assign(form, {
-    nombre: row.nombre,
-    cedula: row.cedula,
-    telefono: row.telefono,
-    calleId: row.calleId,
-  })
-  showForm.value = true
-}
-
-function save() {
-  const payload = {
-    nombre: form.nombre,
-    cedula: form.cedula,
-    telefono: form.telefono,
-    calleId: Number(form.calleId),
-  }
-  if (editing.value) {
-    updateJefe(editing.value.id, payload)
-    addAuditoria({
-      usuario: currentUser.value.username,
-      accion: 'Modificar',
-      entidad: 'Jefe de Calle',
-      detalle: `Actualizado: ${form.nombre}`,
-    })
-  } else {
-    addJefe(payload)
-    addAuditoria({
-      usuario: currentUser.value.username,
-      accion: 'Crear',
-      entidad: 'Jefe de Calle',
-      detalle: `Creado: ${form.nombre}`,
-    })
-  }
-  showForm.value = false
-}
-
-function toggle(row) {
-  toggleActivo(jefes, row.id)
-  addAuditoria({
-    usuario: currentUser.value.username,
-    accion: row.activo ? 'Activar' : 'Desactivar',
-    entidad: 'Jefe de Calle',
-    detalle: row.nombre,
-  })
-}
+onMounted(cargarJefes)
 </script>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+.admin-page { font-family: 'Poppins', sans-serif; color: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.header-banner { background: linear-gradient(135deg, rgba(0, 114, 206, 0.4), rgba(255, 122, 0, 0.2)); backdrop-filter: blur(16px); border: 1px solid rgba(0, 114, 206, 0.4); border-radius: 20px; padding: 1.8rem 2rem; }
+.badge { display: inline-block; background: rgba(0, 114, 206, 0.3); color: #38b6ff; border: 1px solid rgba(56, 182, 255, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+.header-banner h1 { margin: 0; font-size: 1.6rem; }
+.header-banner p { margin: 0.3rem 0 0 0; color: #a0aec0; font-size: 0.9rem; }
+.table-card { background: rgba(15, 23, 36, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(50, 132, 209, 0.3); border-radius: 20px; padding: 1.5rem; }
+.custom-table { width: 100%; border-collapse: collapse; text-align: left; }
+.custom-table th { padding: 0.8rem 1rem; font-size: 0.8rem; color: #a0aec0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.custom-table td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.id-cell { font-weight: 600; color: #38b6ff; }
+.badge-calle { background: rgba(255, 255, 255, 0.08); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; }
+.badge-jefe { background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
+.loading-state, .empty-state { text-align: center; padding: 3rem; color: #a0aec0; }
+.spinner { width: 30px; height: 30px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #0072ce; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 0.5rem auto; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
