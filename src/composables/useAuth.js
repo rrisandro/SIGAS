@@ -1,10 +1,4 @@
-// ============================================
-// COMPOSABLE: useAuth
-// Autenticación simulada
-// ============================================
-
 import { ref } from 'vue'
-import { useMockData } from './useMockData.js'
 
 const SESSION_KEY = 'gas_system_session'
 const currentUser = ref(null)
@@ -20,24 +14,10 @@ function loadSession() {
   }
 }
 
-function login(username, password) {
-  const { usuarios } = useMockData()
-  const user = usuarios.value.find(
-    (u) => u.username === username && u.password === password && u.activo
-  )
-  if (user) {
-    const session = {
-      id: user.id,
-      username: user.username,
-      nombre: user.nombre,
-      rol: user.rol,
-      entidadId: user.entidadId || null,
-    }
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-    currentUser.value = session
-    return session
-  }
-  return null
+// Función para guardar la sesión del usuario autenticado con Supabase
+function setSession(userData) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(userData))
+  currentUser.value = userData
 }
 
 function logout() {
@@ -56,7 +36,7 @@ function requireAuth() {
 function useAuth() {
   return {
     currentUser,
-    login,
+    setSession,
     logout,
     isAuthenticated,
     requireAuth,
