@@ -1,0 +1,13 @@
+📝 TAREA A FUTURO: Bloqueo de Pedidos por Ciclo Operativo
+
+    Objetivo: Impedir que una familia realice más de una solicitud de gas por cada jornada de distribución.
+
+    Lógica a implementar:
+
+        Validación al cargar (onMounted): Consultar en la tabla pedidos si el id_familias ya posee un pedido con estatus "Pendiente" (o asociado al ID del ciclo actual).
+
+        Bloqueo Visual: Si la consulta es positiva, ocultar el componente CascadingSelector y mostrar un mensaje: "Ya posees una solicitud registrada para este ciclo. Debes esperar a la próxima jornada."
+
+        Protección en el Backend (submit): Antes de hacer el INSERT en Supabase, realizar una doble validación para asegurar que la familia no haya alterado el código visual para intentar enviar un segundo pedido.
+
+Por ahora, lo mantendremos con inserciones libres para que tú y tu equipo puedan hacer todas las pruebas necesarias sin tener que estar borrando registros a cada rato. ¡Cuenta con que lo tendré presente en nuestro contexto para cuando decidas que es momento de activar esta regla!
