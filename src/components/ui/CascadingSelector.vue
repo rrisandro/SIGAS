@@ -6,6 +6,7 @@
       :options="calleOptions"
       placeholder="Seleccionar calle..."
       :disabled="lockCalle"
+      value-type="number"
     />
     <BaseSelect
       v-model="familiaId"
@@ -13,18 +14,23 @@
       :options="familiaOptions"
       placeholder="Seleccionar familia..."
       :disabled="!calleId || lockFamilia"
+      value-type="number"
     />
+    <!-- ✅ value-type="string" para que no convierta '10kg' a NaN -->
     <BaseSelect
       v-model="tipoBombonaId"
       label="Tipo de bombona"
       :options="tipoOptions"
       placeholder="Seleccionar tipo..."
+      value-type="string"
     />
+    <!-- ✅ value-type="string" para que no convierta 'fino' a NaN -->
     <BaseSelect
       v-model="picoId"
       label="Pico"
       :options="picoOptions"
       placeholder="Seleccionar pico..."
+      value-type="string"
     />
   </div>
 </template>
@@ -32,18 +38,19 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import BaseSelect from './BaseSelect.vue'
-import { useMockData } from '../../composables/useMockData.js'
 
 const props = defineProps({
+  calles: { type: Array, default: () => [] },
+  familias: { type: Array, default: () => [] },
+  tiposBombona: { type: Array, default: () => [] },
+  picos: { type: Array, default: () => [] },
   initialCalleId: { type: [Number, String], default: null },
   initialFamiliaId: { type: [Number, String], default: null },
   lockCalle: { type: Boolean, default: false },
   lockFamilia: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['update'])
-
-const { calles, familias, tiposBombona, picos } = useMockData()
+const emit = defineEmits(['selection-change'])
 
 const calleId = ref(props.initialCalleId || '')
 const familiaId = ref(props.initialFamiliaId || '')
@@ -51,39 +58,39 @@ const tipoBombonaId = ref('')
 const picoId = ref('')
 
 const calleOptions = computed(() =>
-  calles.value.filter((c) => c.activo).map((c) => ({ value: c.id, label: c.nombre }))
+  props.calles
+    .filter((c) => c.activo)
+    .map((c) => ({ value: c.id_calle, label: c.nombre }))
 )
 
 const familiaOptions = computed(() => {
   if (!calleId.value) return []
-  return familias.value
-    .filter((f) => f.activo && f.calleId === Number(calleId.value))
-    .map((f) => ({ value: f.id, label: f.nombre }))
+  return props.familias
+    .filter((f) => f.activo && f.id_calle === Number(calleId.value))
+    .map((f) => ({ value: f.id, label: f.nombre_familia }))
 })
 
 const tipoOptions = computed(() =>
-  tiposBombona.value.map((t) => ({ value: t.id, label: t.nombre }))
+  props.tiposBombona.map((t) => ({ value: t.id, label: t.nombre }))
 )
 
 const picoOptions = computed(() =>
-  picos.value.map((p) => ({ value: p.id, label: p.nombre }))
+  props.picos.map((p) => ({ value: p.id, label: p.nombre }))
 )
 
-watch(calleId, () => {
-  if (!props.lockFamilia) familiaId.value = ''
+watch([calleId, familiaId, tipoBombonaId, picoId], () => {
   emitSelection()
 })
 
-watch([familiaId, tipoBombonaId, picoId], emitSelection)
-
 function emitSelection() {
-  emit('update', {
+  const data = {
     calleId: calleId.value ? Number(calleId.value) : null,
     familiaId: familiaId.value ? Number(familiaId.value) : null,
-    tipoBombonaId: tipoBombonaId.value ? Number(tipoBombonaId.value) : null,
-    picoId: picoId.value ? Number(picoId.value) : null,
+    tipoBombonaId: tipoBombonaId.value || null,
+    picoId: picoId.value || null,
     complete: !!(calleId.value && familiaId.value && tipoBombonaId.value && picoId.value),
-  })
+  }
+  emit('selection-change', data)
 }
 
 function reset() {
