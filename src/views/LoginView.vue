@@ -8,26 +8,27 @@
 
         <h2 id="heading">Iniciar Sesión</h2>
 
+        <!-- CAMPO DE CORREO -->
         <div class="field">
           <svg viewBox="0 0 16 16" fill="currentColor" class="input-icon" xmlns="http://www.w3.org/2000/svg">
             <path d="M13.106 7.222c0-2.967-2.249-5.032-5.482-5.032-3.35 0-5.646 2.318-5.646 5.702 0 3.493 2.235 5.708 5.762 5.708.862 0 1.689-.123 2.304-.335v-.862c-.43.199-1.354.328-2.29.328-2.926 0-4.813-1.88-4.813-4.798 0-2.844 1.921-4.881 4.594-4.881 2.735 0 4.608 1.688 4.608 4.156 0 1.682-.554 2.769-1.416 2.769-.492 0-.772-.28-.772-.76V5.206H8.923v.834h-.11c-.266-.595-.881-.964-1.6-.964-1.4 0-2.378 1.162-2.378 2.823 0 1.737.957 2.906 2.379 2.906.8 0 1.415-.39 1.709-1.087h.11c.081.67.703 1.148 1.503 1.148 1.572 0 2.57-1.415 2.57-3.643zm-7.177.704c0-1.197.54-1.907 1.456-1.907.93 0 1.524.738 1.524 1.907S8.308 9.84 7.371 9.84c-.895 0-1.442-.725-1.442-1.914z" />
           </svg>
           <input
-            v-model="username"
-            type="text"
+            v-model="loginEmail"
+            type="email"
             class="input-field"
-            placeholder="Usuario"
-            autocomplete="off"
+            placeholder="Correo Electrónico"
             required
           />
         </div>
 
+        <!-- CAMPO DE CONTRASEÑA -->
         <div class="field">
           <svg viewBox="0 0 16 16" fill="currentColor" class="input-icon" xmlns="http://www.w3.org/2000/svg">
             <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
           </svg>
           <input
-            v-model="password"
+            v-model="loginPassword"
             type="password"
             class="input-field"
             placeholder="Contraseña"
@@ -42,7 +43,7 @@
           <button type="submit" class="button1" :disabled="loading">
             {{ loading ? 'Ingresando...' : 'Ingresar' }}
           </button>
-          <button type="button" class="button2" @click="onRegisterClick">Registrarse</button>
+          <button type="button" class="button2" @click="abrirModalRegistro">Registrarse</button>
         </div>
 
         <button type="button" class="button3" @click="onForgotClick">¿Olvidaste tu contraseña?</button>
@@ -50,49 +51,198 @@
         <div class="demo-box">
           <p class="demo-title">Cuentas de demo</p>
           <ul>
-            <li>Admin: <span>admin / admin123</span></li>
-            <li>Jefe: <span>carlos.mendoza / jefe123</span></li>
-            <li>Familia: <span>familia.perez / familia123</span></li>
+            <li>Admin: <span>admin@sigas.com / admin123</span></li>
+            <li>Jefe: <span>carlos.mendoza@sigas.com / jefe123</span></li>
+            <li>Familia: <span>familia.perez@sigas.com / familia123</span></li>
           </ul>
         </div>
       </form>
+    </div>
+
+    <!-- MODAL DE REGISTRO DE FAMILIA -->
+    <div v-if="mostrarModal" class="modal-overlay">
+      <div class="modal-card">
+        <h3>Registro de Familia</h3>
+        <form @submit.prevent="handleRegister" class="modal-form">
+          <div class="field">
+            <input v-model="regCedula" type="number" class="input-field" placeholder="Cédula (ID de la Familia)" required />
+          </div>
+
+          <div class="field">
+            <input v-model="regNombre" type="text" class="input-field" placeholder="Nombre y Apellido" required />
+          </div>
+
+          <div class="field">
+            <input v-model="regEmail" type="email" class="input-field" placeholder="Correo Electrónico" required />
+          </div>
+
+          <div class="field">
+            <select v-model="regCalle" class="select-field" required>
+              <option value="" disabled selected>Selecciona tu Calle</option>
+              <option v-for="calle in listaCalles" :key="calle.id_calle" :value="calle.id_calle">
+                {{ calle.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <input v-model="regPassword" type="password" class="input-field" placeholder="Contraseña" required />
+          </div>
+
+          <p v-if="regError" class="error-text">{{ regError }}</p>
+
+          <div class="btn-group">
+            <button type="submit" class="button1" :disabled="loadingReg">
+              {{ loadingReg ? 'Guardando...' : 'Completar Registro' }}
+            </button>
+            <button type="button" class="button2" @click="mostrarModal = false">Cancelar</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '../composables/supabase.js'
 import { useAuth } from '../composables/useAuth.js'
-import { defaultRoutes } from '../data/menu.js'
 import logoImage from '../assets/sigas-logo.jpeg'
 import bgImage from '../assets/sigas-bg.jpeg'
 
 const router = useRouter()
-const { login } = useAuth()
+const { setSession } = useAuth()
 
-const username = ref('')
-const password = ref('')
+// Variables de Login
+const loginEmail = ref('')
+const loginPassword = ref('')
 const error = ref('')
 const notice = ref('')
 const loading = ref(false)
 
-function handleLogin() {
+// Variables de Registro
+const mostrarModal = ref(false)
+const regCedula = ref('')
+const regNombre = ref('')
+const regEmail = ref('')
+const regCalle = ref('')
+const regPassword = ref('')
+const regError = ref('')
+const loadingReg = ref(false)
+const listaCalles = ref([])
+
+// Cargar las calles activas registradas en Supabase
+onMounted(async () => {
+  const { data, error: calleError } = await supabase
+    .from('calles')
+    .select('id_calle, nombre')
+    .eq('activo', true)
+
+  if (!calleError && data) {
+    listaCalles.value = data
+  }
+})
+
+function abrirModalRegistro() {
+  regError.value = ''
+  mostrarModal.value = true
+}
+
+// Proceso de Inicio de Sesión
+async function handleLogin() {
   error.value = ''
   notice.value = ''
   loading.value = true
-  const session = login(username.value.trim(), password.value)
-  loading.value = false
-  if (!session) {
-    error.value = 'Credenciales inválidas o usuario inactivo'
+
+  // 1. Iniciar sesión en Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email: loginEmail.value.trim(),
+    password: loginPassword.value,
+  })
+
+  if (authError) {
+    loading.value = false
+    error.value = 'Credenciales inválidas o usuario no registrado'
     return
   }
-  router.push(defaultRoutes[session.rol] || '/login')
+
+  // 2. Consultar la tabla familias para obtener el id_cargo y datos de la familia
+  const { data: familiaData } = await supabase
+    .from('familias')
+    .select('id_cargo, nombre_familia, id')
+    .eq('auth_id', authData.user.id)
+    .maybeSingle()
+
+  loading.value = false
+
+  // Mapear id_cargo a la cadena de rol que espera el router ('admin', 'jefe', 'familia')
+  const cargoMap = {
+    1: 'admin',
+    2: 'jefe',
+    3: 'familia'
+  }
+
+  const userRole = cargoMap[familiaData?.id_cargo] || 'familia'
+
+  // 3. Establecer la sesión en useAuth y localStorage para pasar las verificaciones de tu router
+  setSession({
+    id: familiaData?.id || authData.user.id,
+    authId: authData.user.id,
+    email: authData.user.email,
+    nombre: familiaData?.nombre_familia || 'Usuario',
+    rol: userRole,
+  })
+
+  // 4. Redirigir a las rutas completas según el rol
+  if (userRole === 'admin') {
+    router.push('/admin/dashboard')
+  } else if (userRole === 'jefe') {
+    router.push('/jefe/dashboard')
+  } else {
+    router.push('/familia/dashboard')
+  }
 }
 
-function onRegisterClick() {
-  error.value = ''
-  notice.value = 'El registro de nuevos usuarios lo gestiona el administrador del sistema.'
+// Proceso de Registro Completo
+async function handleRegister() {
+  regError.value = ''
+  loadingReg.value = true
+
+  // 1. Crear usuario en Authentication de Supabase
+  const { data: authData, error: authErr } = await supabase.auth.signUp({
+    email: regEmail.value.trim(),
+    password: regPassword.value,
+  })
+
+  if (authErr) {
+    regError.value = authErr.message
+    loadingReg.value = false
+    return
+  }
+
+  // 2. Insertar registro en la tabla 'familias' asignando id_cargo: 3 (Familia)
+  const { error: dbError } = await supabase.from('familias').insert([
+    {
+      id: parseInt(regCedula.value),
+      auth_id: authData.user.id,
+      nombre_familia: regNombre.value,
+      id_calle: parseInt(regCalle.value),
+      id_cargo: 3, // Cargo 3 = Familia por defecto
+      activo: true
+    }
+  ])
+
+  loadingReg.value = false
+
+  if (dbError) {
+    regError.value = 'Error al registrar en la base de datos: ' + dbError.message
+  } else {
+    mostrarModal.value = false
+    notice.value = '¡Registro exitoso! Ya puedes iniciar sesión.'
+    loginEmail.value = regEmail.value
+    loginPassword.value = ''
+  }
 }
 
 function onForgotClick() {
@@ -155,7 +305,7 @@ function onForgotClick() {
 .form {
   width: 390px;
   padding: 2.5em 2em;
-  background-color: rgba(15, 23, 36, 0.6); 
+  background-color: rgba(15, 23, 36, 0.75);
   color: #fff;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -222,11 +372,7 @@ function onForgotClick() {
   flex-shrink: 0;
 }
 
-.field:focus-within .input-icon {
-  fill: #ffffff;
-}
-
-.input-field {
+.input-field, .select-field {
   background: none;
   border: none;
   outline: none;
@@ -240,6 +386,11 @@ function onForgotClick() {
   color: #ffffff;
 }
 
+.select-field option {
+  background-color: #0f1724;
+  color: #ffffff;
+}
+
 .error-text {
   margin: 0;
   color: #ff8a8a;
@@ -249,8 +400,8 @@ function onForgotClick() {
 
 .notice-text {
   margin: 0;
-  color: #ffd699;
-  font-size: 0.8em;
+  color: #72f293;
+  font-size: 0.85em;
   text-align: center;
 }
 
@@ -350,5 +501,39 @@ function onForgotClick() {
 
 .demo-box span {
   color: #e2e8f0;
+}
+
+/* MODAL DE REGISTRO */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  background: #0f1724;
+  padding: 2em;
+  border-radius: 20px;
+  width: 390px;
+  border: 1px solid #0072CE;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+.modal-card h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>
