@@ -1,13 +1,3 @@
-/* ============================================================
-  SIGAS - Hoja de estilos (CSS puro, sin Tailwind)
-  Reemplaza exactamente las mismas clases que antes generaba
-  Tailwind, para que el diseño visual quede idéntico. Los
-  componentes .vue NO cambiaron sus atributos class="...":
-  solo cambió quién resuelve esas clases (este archivo, escrito
-  a mano, en vez del compilador de Tailwind).
-   ============================================================ */
-
-/* ---------- Reset / base ---------- */
 *,
 *::before,
 *::after {
@@ -275,4 +265,56 @@ body {
 
 @media (min-width: 1280px) {
   .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.switch {
+  font-size: 17px;
+  position: relative;
+  display: inline-block;
+  width: 3.5em;
+  height: 2em;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #9fccfa;
+  border-radius: 50px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2em;
+  width: 2em;
+  inset: 0;
+  background-color: white;
+  border-radius: 50px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.switch input:checked + .slider {
+  background: #0974f1;
+}
+
+.switch input:focus + .slider {
+  box-shadow: 0 0 1px #0974f1;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(1.6em);
 }

@@ -155,7 +155,7 @@ function onForgotClick() {
 .form {
   width: 390px;
   padding: 2.5em 2em;
-  background-color: rgba(15, 23, 36, 0.6); /* o un color sólido en lugar de blanco/gris */
+  background-color: rgba(15, 23, 36, 0.6); 
   color: #fff;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
