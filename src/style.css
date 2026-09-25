@@ -1,13 +1,3 @@
-/* ============================================================
-  SIGAS - Hoja de estilos (CSS puro, sin Tailwind)
-  Reemplaza exactamente las mismas clases que antes generaba
-  Tailwind, para que el diseño visual quede idéntico. Los
-  componentes .vue NO cambiaron sus atributos class="...":
-  solo cambió quién resuelve esas clases (este archivo, escrito
-  a mano, en vez del compilador de Tailwind).
-   ============================================================ */
-
-/* ---------- Reset / base ---------- */
 *,
 *::before,
 *::after {
@@ -276,3 +266,4 @@ body {
 @media (min-width: 1280px) {
   .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+

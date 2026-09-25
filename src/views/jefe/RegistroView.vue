@@ -1,61 +1,153 @@
 <template>
-  <div class="mx-auto max-w-3xl space-y-6">
-    <div>
-      <h2 class="text-xl font-medium text-gray-700">Registro Presencial</h2>
-      <p class="text-sm text-gray-500">Registra una solicitud rápida para una familia de tu calle</p>
+  <div class="p-6 max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-2 text-gray-800">Registro de Solicitud</h2>
+    <p class="text-sm text-gray-500 mb-6">Gestión de calle</p>
+
+    <div v-if="jefe" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <p class="text-sm text-gray-600">
+        Jefe de calle: <span class="font-medium text-blue-700">{{ jefe.nombre }}</span>
+      </p>
     </div>
 
-    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <CascadingSelector
         ref="selectorRef"
-        :initial-calle-id="jefe?.calleId"
-        lock-calle
-        @update="selection = $event"
+        :calles="calles"
+        :familias="familias"
+        :tipos-bombona="tiposBombona"
+        :picos="picosDisponibles"
+        @selection-change="onSelectionUpdate"
       />
-      <BaseInput v-model="observaciones" class="mt-4" label="Observaciones" placeholder="Opcional" />
-      <p v-if="success" class="mt-4 text-sm text-emerald-600">{{ success }}</p>
+
+      <div class="mt-4 max-w-md">
+        <BaseInput 
+          v-model="observaciones" 
+          label="Observaciones" 
+          placeholder="Opcional"
+        />
+      </div>
+
       <div class="mt-6 flex justify-end">
-        <BaseButton :disabled="!selection.complete" @click="submit">Registrar</BaseButton>
+        <BaseButton 
+          @click="submit" 
+          variant="success"
+          :disabled="!selectionComplete"
+          size="md"
+        >
+          Registrar solicitud
+        </BaseButton>
+      </div>
+
+      <div v-if="success" class="mt-4 p-4 bg-green-100 text-green-700 rounded-lg border border-green-300">
+        {{ success }}
+      </div>
+
+      <div v-if="error" class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
+        {{ error }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import CascadingSelector from '../../components/ui/CascadingSelector.vue'
 import BaseInput from '../../components/ui/BaseInput.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import { useAuth } from '../../composables/useAuth.js'
-import { useMockData } from '../../composables/useMockData.js'
+import { usePedidos } from '../../composables/usePedidos'
+import { useFamilias } from '../../composables/useFamilias'
+import { supabase } from '../../lib/supabase'
 
 const { currentUser } = useAuth()
-const { jefes, findById, addSolicitud, addAuditoria, getFamiliaNombre } = useMockData()
+const { createPedido } = usePedidos()
+const { familias, fetchFamilias } = useFamilias()
 
 const selectorRef = ref(null)
-const selection = ref({ complete: false })
 const observaciones = ref('')
 const success = ref('')
+const error = ref('')
+const selectionComplete = ref(false)
 
-const jefe = computed(() => findById(jefes, currentUser.value?.entidadId))
+const selection = ref({
+  calleId: null,
+  familiaId: null,
+  tipoBombonaId: null,
+  picoId: null,
+  complete: false
+})
 
-function submit() {
-  if (!selection.value.complete) return
-  const item = addSolicitud({
-    familiaId: selection.value.familiaId,
-    tipoBombonaId: selection.value.tipoBombonaId,
-    picoId: selection.value.picoId,
-    observaciones: observaciones.value || 'Registro presencial',
-    estatus: 'en_proceso',
-  })
-  addAuditoria({
-    usuario: currentUser.value.username,
-    accion: 'Registrar',
-    entidad: 'Solicitud Presencial',
-    detalle: `Solicitud para ${getFamiliaNombre(selection.value.familiaId)}`,
-  })
-  success.value = `Solicitud #${item.id} registrada`
-  observaciones.value = ''
-  selectorRef.value?.reset()
+const calles = ref([])
+const jefe = ref(null)
+
+const tiposBombona = [
+  { id: '10kg', nombre: '10 kg' },
+  { id: '18kg', nombre: '18 kg' },
+  { id: '43kg', nombre: '43 kg' }
+]
+
+const picosDisponibles = [
+  { id: 'fino', nombre: 'Pico Fino' },
+  { id: 'ancho', nombre: 'Pico Ancho' }
+]
+
+function onSelectionUpdate(data) {
+  selection.value = data
+  selectionComplete.value = data.complete
+}
+
+onMounted(async () => {
+  success.value = ''
+  error.value = ''
+
+  await fetchFamilias()
+
+  const { data: callesData } = await supabase
+    .from('calles')
+    .select('*')
+    .eq('activo', true)
+    .order('nombre')
+  calles.value = callesData || []
+
+  if (currentUser.value?.id) {
+    const { data: jefeData } = await supabase
+      .from('jefe_de_calle')
+      .select('*')
+      .eq('auth_id', currentUser.value.id)
+      .single()
+    jefe.value = jefeData
+  }
+})
+
+async function submit() {
+  if (!selection.value.complete) {
+    error.value = 'Completa todos los campos obligatorios'
+    success.value = ''
+    return
+  }
+
+  error.value = ''
+  success.value = ''
+
+  try {
+    const result = await createPedido({
+      id_familias: selection.value.familiaId,
+      tipo_bombona: selection.value.tipoBombonaId,
+      pico: selection.value.picoId,
+      status: 'pendiente',
+      fecha_solicitud: new Date().toISOString()
+    })
+
+    if (result) {
+      success.value = 'Solicitud registrada exitosamente'
+      observaciones.value = ''
+      selectorRef.value?.reset()
+      selectionComplete.value = false
+    } else {
+      error.value = 'Error al registrar la solicitud'
+    }
+  } catch (err) {
+    error.value = err.message
+  }
 }
 </script>
