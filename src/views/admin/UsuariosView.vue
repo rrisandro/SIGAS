@@ -1,153 +1,91 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="admin-page">
+    <header class="header-banner">
       <div>
-        <h2 class="text-xl font-medium text-gray-700">Usuarios</h2>
-        <p class="text-sm text-gray-500">CRUD de cuentas de acceso</p>
+        <div class="badge">Seguridad y Permisos</div>
+        <h1>Control de Usuarios y Roles</h1>
+        <p>Administración de niveles de acceso del sistema</p>
       </div>
-      <BaseButton @click="openCreate">Nuevo usuario</BaseButton>
+    </header>
+
+    <div class="table-card">
+      <div v-if="loading" class="loading-state"><div class="spinner"></div>Cargando usuarios...</div>
+      
+      <div v-else class="table-wrapper">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Cédula</th>
+              <th>Nombre</th>
+              <th>Cargo / Rol</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in usuarios" :key="user.id">
+              <td class="id-cell">V-{{ user.id }}</td>
+              <td>{{ user.nombre_familia }}</td>
+              <td>
+                <select 
+                  :value="user.id_cargo" 
+                  @change="cambiarCargo(user.id, $event.target.value)"
+                  class="select-cargo"
+                >
+                  <option value="1">1 - Administrador</option>
+                  <option value="2">2 - Jefe de Calle</option>
+                  <option value="3">3 - Familia</option>
+                </select>
+              </td>
+              <td>
+                <span class="status-ok">Registrado</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-
-    <CrudDataTable
-      :columns="columns"
-      :rows="rows"
-      :search-keys="['username', 'nombre', 'rol']"
-    >
-      <template #cell-activo="{ row }">
-        <div class="flex items-center gap-2">
-          <ToggleSwitch :model-value="row.activo" @update:model-value="toggle(row)" />
-          <StatusBadge :status="row.activo ? 'activo' : 'inactivo'" />
-        </div>
-      </template>
-      <template #actions="{ row }">
-        <BaseButton size="sm" variant="outline" @click="openEdit(row)">Editar</BaseButton>
-      </template>
-    </CrudDataTable>
-
-    <Teleport to="body">
-      <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-gray-700/30" @click="showForm = false" />
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-          <h3 class="text-lg font-medium text-gray-700">{{ editing ? 'Editar usuario' : 'Nuevo usuario' }}</h3>
-          <div class="mt-4 space-y-3">
-            <BaseInput v-model="form.nombre" label="Nombre" />
-            <BaseInput v-model="form.username" label="Usuario" />
-            <BaseInput v-model="form.password" label="Contraseña" type="password" />
-            <BaseSelect
-              v-model="form.rol"
-              label="Rol"
-              value-type="string"
-              :options="rolOptions"
-            />
-            <BaseInput
-              v-if="form.rol !== 'admin'"
-              v-model="form.entidadId"
-              label="ID entidad (jefe/familia)"
-              type="number"
-            />
-          </div>
-          <div class="mt-6 flex justify-end gap-2">
-            <BaseButton variant="ghost" @click="showForm = false">Cancelar</BaseButton>
-            <BaseButton @click="save">Guardar</BaseButton>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import CrudDataTable from '../../components/ui/CrudDataTable.vue'
-import BaseButton from '../../components/ui/BaseButton.vue'
-import BaseInput from '../../components/ui/BaseInput.vue'
-import BaseSelect from '../../components/ui/BaseSelect.vue'
-import ToggleSwitch from '../../components/ui/ToggleSwitch.vue'
-import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { useAuth } from '../../composables/useAuth.js'
-import { useMockData } from '../../composables/useMockData.js'
+import { ref, onMounted } from 'vue'
+import { supabase } from '../../composables/supabase.js'
 
-const { currentUser } = useAuth()
-const { usuarios, addUsuario, updateUsuario, toggleActivo, addAuditoria } = useMockData()
+const usuarios = ref([])
+const loading = ref(true)
 
-const columns = [
-  { key: 'id', label: '#' },
-  { key: 'nombre', label: 'Nombre' },
-  { key: 'username', label: 'Usuario' },
-  { key: 'rol', label: 'Rol' },
-  { key: 'activo', label: 'Estado' },
-]
-
-const rows = computed(() => usuarios.value)
-const rolOptions = [
-  { value: 'admin', label: 'Administrador' },
-  { value: 'jefe', label: 'Jefe de calle' },
-  { value: 'familia', label: 'Familia' },
-]
-
-const showForm = ref(false)
-const editing = ref(null)
-const form = reactive({
-  nombre: '',
-  username: '',
-  password: '',
-  rol: 'familia',
-  entidadId: '',
-})
-
-function openCreate() {
-  editing.value = null
-  Object.assign(form, { nombre: '', username: '', password: '', rol: 'familia', entidadId: '' })
-  showForm.value = true
+async function cargarUsuarios() {
+  loading.value = true
+  const { data } = await supabase.from('familias').select('*')
+  if (data) usuarios.value = data
+  loading.value = false
 }
 
-function openEdit(row) {
-  editing.value = row
-  Object.assign(form, {
-    nombre: row.nombre,
-    username: row.username,
-    password: row.password,
-    rol: row.rol,
-    entidadId: row.entidadId || '',
-  })
-  showForm.value = true
+async function cambiarCargo(idFamilia, nuevoCargoId) {
+  await supabase
+    .from('familias')
+    .update({ id_cargo: parseInt(nuevoCargoId) })
+    .eq('id', idFamilia)
 }
 
-function save() {
-  const payload = {
-    nombre: form.nombre,
-    username: form.username,
-    password: form.password,
-    rol: form.rol,
-    entidadId: form.rol === 'admin' ? undefined : Number(form.entidadId) || null,
-  }
-  if (editing.value) {
-    updateUsuario(editing.value.id, payload)
-    addAuditoria({
-      usuario: currentUser.value.username,
-      accion: 'Modificar',
-      entidad: 'Usuario',
-      detalle: form.username,
-    })
-  } else {
-    addUsuario(payload)
-    addAuditoria({
-      usuario: currentUser.value.username,
-      accion: 'Crear',
-      entidad: 'Usuario',
-      detalle: form.username,
-    })
-  }
-  showForm.value = false
-}
-
-function toggle(row) {
-  toggleActivo(usuarios, row.id)
-  addAuditoria({
-    usuario: currentUser.value.username,
-    accion: row.activo ? 'Activar' : 'Desactivar',
-    entidad: 'Usuario',
-    detalle: row.username,
-  })
-}
+onMounted(cargarUsuarios)
 </script>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+.admin-page { font-family: 'Poppins', sans-serif; color: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.header-banner { background: linear-gradient(135deg, rgba(0, 114, 206, 0.4), rgba(255, 122, 0, 0.2)); backdrop-filter: blur(16px); border: 1px solid rgba(0, 114, 206, 0.4); border-radius: 20px; padding: 1.8rem 2rem; }
+.badge { display: inline-block; background: rgba(0, 114, 206, 0.3); color: #38b6ff; border: 1px solid rgba(56, 182, 255, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+.header-banner h1 { margin: 0; font-size: 1.6rem; }
+.header-banner p { margin: 0.3rem 0 0 0; color: #a0aec0; font-size: 0.9rem; }
+.table-card { background: rgba(15, 23, 36, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(50, 132, 209, 0.3); border-radius: 20px; padding: 1.5rem; }
+.custom-table { width: 100%; border-collapse: collapse; text-align: left; }
+.custom-table th { padding: 0.8rem 1rem; font-size: 0.8rem; color: #a0aec0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.custom-table td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.id-cell { font-weight: 600; color: #38b6ff; }
+.select-cargo { background: #0f1724; border: 1px solid rgba(0, 114, 206, 0.5); color: #fff; padding: 6px 10px; border-radius: 8px; outline: none; font-family: 'Poppins', sans-serif; }
+.status-ok { color: #4ade80; font-size: 0.8rem; }
+.loading-state { text-align: center; padding: 3rem; color: #a0aec0; }
+.spinner { width: 30px; height: 30px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #0072ce; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 0.5rem auto; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
