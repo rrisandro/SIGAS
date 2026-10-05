@@ -35,34 +35,17 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import CrudDataTable from '../../components/ui/CrudDataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import ModalDialog from '../../components/ui/ModalDialog.vue'
-import { useAuth } from '../../composables/useAuth.js'
-import { useMockData } from '../../composables/useMockData.js'
+import { usePedidos } from '../../composables/usePedidos'
 
-const { currentUser } = useAuth()
-const {
-  jefes,
-  familias,
-  solicitudes,
-  findById,
-  getFamiliaNombre,
-  getTipoNombre,
-  updateSolicitudEstatus,
-  addAuditoria,
-} = useMockData()
+const { pedidos, fetchPedidos, updateStatus } = usePedidos()
 
 const showReject = ref(false)
 const selected = ref(null)
-
-const jefe = computed(() => findById(jefes, currentUser.value?.entidadId))
-const familiaIds = computed(() => {
-  const calleId = jefe.value?.calleId
-  return new Set(familias.value.filter((f) => f.calleId === calleId).map((f) => f.id))
-})
 
 const columns = [
   { key: 'id', label: '#' },
@@ -73,23 +56,29 @@ const columns = [
 ]
 
 const rows = computed(() =>
-  solicitudes.value
-    .filter((s) => familiaIds.value.has(s.familiaId) && ['pendiente', 'en_proceso'].includes(s.estatus))
-    .map((s) => ({
-      ...s,
-      familia: getFamiliaNombre(s.familiaId),
-      tipo: getTipoNombre(s.tipoBombonaId),
+  pedidos.value
+    .filter((p) => p.status === 'pendiente')  // ✅ SOLO pendientes
+    .map((p) => ({
+      id: p.id_pedido,
+      fecha: formatearFecha(p.fecha_solicitud),
+      familia: p.familia?.nombre_familia || 'Sin familia',
+      tipo: `Bombona ${p.tipo_bombona}`,
+      estatus: p.status,
+      _original: p
     }))
 )
 
-function aceptar(row) {
-  updateSolicitudEstatus(row.id, 'en_proceso', 'Aprobada por jefe de calle')
-  addAuditoria({
-    usuario: currentUser.value.username,
-    accion: 'Aprobar',
-    entidad: `Solicitud #${row.id}`,
-    detalle: `Solicitud de ${row.familia} aprobada`,
-  })
+onMounted(() => {
+  fetchPedidos()
+})
+
+function formatearFecha(fecha) {
+  if (!fecha) return '-'
+  return new Date(fecha).toLocaleDateString('es-VE')
+}
+
+async function aceptar(row) {
+  await updateStatus(row._original.id_pedido, 'en_proceso')
 }
 
 function openReject(row) {
@@ -97,15 +86,9 @@ function openReject(row) {
   showReject.value = true
 }
 
-function confirmarRechazo() {
+async function confirmarRechazo() {
   if (!selected.value) return
-  updateSolicitudEstatus(selected.value.id, 'rechazado', 'Rechazada por jefe de calle')
-  addAuditoria({
-    usuario: currentUser.value.username,
-    accion: 'Rechazar',
-    entidad: `Solicitud #${selected.value.id}`,
-    detalle: `Solicitud de ${selected.value.familia} rechazada`,
-  })
+  await updateStatus(selected.value._original.id_pedido, 'rechazado')
   selected.value = null
 }
 </script>
