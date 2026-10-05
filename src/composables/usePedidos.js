@@ -32,27 +32,28 @@
         loading.value = false
     }
 
-    async function createPedido(pedido) {
-        const { data, error: err } = await supabase
-        .from('pedidos')
-        .insert([{
-            id_familias: pedido.id_familias,
-            tipo_bombona: pedido.tipo_bombona,
-            pico: pedido.pico,
-            status: 'pendiente',
-            fecha_solicitud: new Date().toISOString()
-        }])
-        .select()
-        .single()
 
-        if (err) {
-        error.value = err.message
-        return null
-        }
+async function createPedido(pedido) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .insert([
+      {
+        id_familias: pedido.id_familias,
+        id_ciclo: pedido.id_ciclo, // <--- ¡Asegúrate de tener esta línea!
+        tipo_bombona: pedido.tipo_bombona,
+        pico: pedido.pico,
+        status: pedido.status || 'pendiente'
+      }
+    ])
+    .select()
 
-        await fetchPedidos()
-        return data
-    }
+  if (error) {
+    console.error('Error en createPedido:', error.message)
+    return null
+  }
+
+  return data ? data[0] : null
+}
 
     async function updateStatus(id_pedido, status) {
         const { data, error: err } = await supabase

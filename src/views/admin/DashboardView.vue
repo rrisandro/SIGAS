@@ -8,7 +8,7 @@
           Panel de Control General
         </div>
         <h1>Gestión de Administración — SIGAS</h1>
-        <p>Monitoreo y control centralizado de familias, sectores y roles del sistema</p>
+        <p>Monitoreo y control centralizado de familias, sectores, roles e histórico de distribución</p>
       </div>
       <button class="refresh-btn" @click="cargarDatos" :disabled="loading">
         <svg viewBox="0 0 24 24" class="icon" :class="{ spin: loading }">
@@ -42,21 +42,93 @@
         </div>
       </div>
 
+      <div class="metric-card border-amber">
+        <div class="card-icon amber">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        </div>
+        <div class="metric-info">
+          <h3>Ciclos Realizados</h3>
+          <p class="number">{{ listaHistoricoCiclos.length }}</p>
+          <span class="subtext">Jornadas de gas registradas</span>
+        </div>
+      </div>
+
       <div class="metric-card border-green">
         <div class="card-icon green">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2zm-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         </div>
         <div class="metric-info">
-          <h3>Estado Servidor</h3>
-          <p class="number status">
-            <span class="server-dot"></span> En Línea
-          </p>
-          <span class="subtext">Conectado a Supabase</span>
+          <h3>Bombonas Entregadas</h3>
+          <p class="number">{{ totalBombonasDespachadas }}</p>
+          <span class="subtext">Total histórico despachado</span>
         </div>
       </div>
     </div>
 
-    <!-- TABLA PRINCIPAL DE REGISTROS -->
+    <!-- SECCIÓN DE HISTÓRICO DE CICLOS -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <h2>Histórico de Ciclos de Distribución</h2>
+          <p>Resumen consolidado de solicitudes y entregas por cada jornada de gas</p>
+        </div>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando información de jornadas...</p>
+      </div>
+
+      <div v-else-if="listaHistoricoCiclos.length === 0" class="empty-state">
+        <p>No hay jornadas o ciclos registrados en el sistema todavía.</p>
+      </div>
+
+      <div v-else class="table-wrapper">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th># ID</th>
+              <th>Nombre del Ciclo</th>
+              <th>Calle / Sector</th>
+              <th>Entregadas / Solicitadas</th>
+              <th>Fecha Inicio</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="ciclo in listaHistoricoCiclos" :key="ciclo.id_ciclo" class="table-row">
+              <td class="id-cell">#{{ ciclo.id_ciclo }}</td>
+              <td class="name-cell">
+                <span class="family-name">{{ ciclo.nombre_ciclo }}</span>
+              </td>
+              <td>
+                <span class="badge-calle">{{ ciclo.calles?.nombre || 'Comunidad General' }}</span>
+              </td>
+              <td>
+                <span class="qty-badge">
+                  <strong class="text-green">{{ ciclo.totalEntregados }}</strong> / {{ ciclo.totalSolicitudes }}
+                </span>
+              </td>
+              <td>{{ ciclo.fecha_inicio ? new Date(ciclo.fecha_inicio).toLocaleDateString('es-VE') : '-' }}</td>
+              <td>
+                <span class="status-indicator" :class="{ active: ciclo.estado === 'activo' }">
+                  <span class="status-dot"></span>
+                  {{ ciclo.estado }}
+                </span>
+              </td>
+              <td>
+                <button class="action-btn-detail" @click="verDetalleCiclo(ciclo)">
+                  🔍 Ver Detalle
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABLA PRINCIPAL DE REGISTROS (USUARIOS Y ROLES) -->
     <div class="table-card">
       <div class="table-header">
         <div>
@@ -102,7 +174,6 @@
                 <span class="badge-calle">{{ obtenerNombreCalle(familia.id_calle) }}</span>
               </td>
               <td>
-                <!-- SELECTOR INTERACTIVO PARA CAMBIAR EL ROL Y GUARDAR EN SUPABASE -->
                 <select 
                   v-model.number="familia.id_cargo" 
                   @change="actualizarRol(familia)"
@@ -125,6 +196,53 @@
         </table>
       </div>
     </div>
+
+    <!-- MODAL DE DETALLE DEL CICLO SELECCIONADO -->
+    <div v-if="cicloSeleccionado" class="modal-overlay" @click.self="cicloSeleccionado = null">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div>
+            <h3>{{ cicloSeleccionado.nombre_ciclo }}</h3>
+            <p>Sector: {{ cicloSeleccionado.calles?.nombre || 'General (Todas las calles)' }}</p>
+          </div>
+          <button class="close-modal" @click="cicloSeleccionado = null">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="detail-stats-grid">
+            <div class="detail-card">
+              <span>Total Solicitudes</span>
+              <strong>{{ cicloSeleccionado.totalSolicitudes }}</strong>
+            </div>
+            <div class="detail-card text-green-box">
+              <span>Entregados Exitosos</span>
+              <strong>{{ cicloSeleccionado.totalEntregados }}</strong>
+            </div>
+          </div>
+
+          <div class="breakdown-section">
+            <h4>Desglose por Tipo de Bombona:</h4>
+            <div class="breakdown-list">
+              <div 
+                v-for="(cant, tipo) in cicloSeleccionado.desgloseBombonas" 
+                :key="tipo" 
+                class="breakdown-item"
+              >
+                <span>Bombona {{ tipo }}</span>
+                <strong>{{ cant }} unid.</strong>
+              </div>
+              <div v-if="Object.keys(cicloSeleccionado.desgloseBombonas || {}).length === 0" class="no-data">
+                No hay entregas registradas en este ciclo aún.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="cicloSeleccionado = null">Cerrar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -135,8 +253,14 @@ import { supabase } from '../../composables/supabase.js'
 const familias = ref([])
 const calles = ref([])
 const cargos = ref([])
+const listaHistoricoCiclos = ref([])
+const cicloSeleccionado = ref(null)
 const filtroBusqueda = ref('')
 const loading = ref(true)
+
+const totalBombonasDespachadas = computed(() => {
+  return listaHistoricoCiclos.value.reduce((acc, c) => acc + (c.totalEntregados || 0), 0)
+})
 
 async function cargarDatos() {
   loading.value = true
@@ -150,6 +274,40 @@ async function cargarDatos() {
     const { data: familiasData, error } = await supabase.from('familias').select('*')
     if (!error && familiasData) {
       familias.value = familiasData
+    }
+
+    // Cargar Histórico de Ciclos y Pedidos
+    const { data: ciclosData } = await supabase
+      .from('ciclos_distribucion')
+      .select(`
+        *,
+        calles (id_calle, nombre),
+        pedidos (
+          id_pedido,
+          tipo_bombona,
+          status
+        )
+      `)
+      .order('id_ciclo', { ascending: false })
+
+    if (ciclosData) {
+      listaHistoricoCiclos.value = ciclosData.map((c) => {
+        const pedidosList = c.pedidos || []
+        const entregados = pedidosList.filter((p) => p.status === 'entregado')
+
+        const desglose = {}
+        entregados.forEach((p) => {
+          const t = p.tipo_bombona || 'General'
+          desglose[t] = (desglose[t] || 0) + 1
+        })
+
+        return {
+          ...c,
+          totalSolicitudes: pedidosList.length,
+          totalEntregados: entregados.length,
+          desgloseBombonas: desglose
+        }
+      })
     }
   } catch (e) {
     console.error('Error cargando datos de Supabase:', e)
@@ -168,11 +326,15 @@ async function actualizarRol(familia) {
     if (error) {
       console.error('Error al actualizar el rol en Supabase:', error.message)
       alert('Hubo un error al actualizar el rol.')
-      cargarDatos() // Recargar para revertir en caso de fallo
+      cargarDatos()
     }
   } catch (e) {
     console.error('Excepción al actualizar rol:', e)
   }
+}
+
+function verDetalleCiclo(ciclo) {
+  cicloSeleccionado.value = ciclo
 }
 
 onMounted(() => {
@@ -205,7 +367,7 @@ function obtenerNombreCalle(idCalle) {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
-  background-color: #060d1a; /* Tono profundo elegante inspirado en el login */
+  background-color: #060d1a;
   min-height: 100vh;
 }
 
@@ -316,7 +478,7 @@ function obtenerNombreCalle(idCalle) {
 /* MÉTRICAS GRID */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.25rem;
 }
 
@@ -334,6 +496,7 @@ function obtenerNombreCalle(idCalle) {
 
 .metric-card.border-blue { border-left: 4px solid #0072ff; }
 .metric-card.border-cyan { border-left: 4px solid #00d4ff; }
+.metric-card.border-amber { border-left: 4px solid #f59e0b; }
 .metric-card.border-green { border-left: 4px solid #10b981; }
 
 .metric-card:hover {
@@ -359,6 +522,7 @@ function obtenerNombreCalle(idCalle) {
 
 .card-icon.blue { background: rgba(0, 114, 255, 0.15); color: #3b82f6; }
 .card-icon.cyan { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
+.card-icon.amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 .card-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 
 .metric-info h3 {
@@ -375,23 +539,6 @@ function obtenerNombreCalle(idCalle) {
   font-size: 1.8rem;
   font-weight: 700;
   color: #ffffff;
-}
-
-.metric-info .number.status {
-  color: #34d399;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.server-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #34d399;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #34d399;
-  animation: pulse 2s infinite;
 }
 
 .metric-info .subtext {
@@ -544,6 +691,33 @@ function obtenerNombreCalle(idCalle) {
   font-weight: 500;
 }
 
+.qty-badge {
+  background: #081120;
+  border: 1px solid #1e293b;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.text-green { color: #34d399; }
+
+.action-btn-detail {
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn-detail:hover {
+  background: rgba(0, 212, 255, 0.25);
+}
+
 /* ESTILOS DEL SELECTOR DE ROL */
 .role-select {
   padding: 6px 12px;
@@ -620,4 +794,138 @@ function obtenerNombreCalle(idCalle) {
   animation: spin 1s infinite linear;
   margin: 0 auto 1rem auto;
 }
+
+/* MODAL DE DETALLE */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: #0f1d36;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.modal-header p {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.close-modal:hover { color: #ffffff; }
+
+.detail-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.detail-card {
+  background: #081120;
+  border: 1px solid #1e293b;
+  padding: 0.85rem;
+  border-radius: 12px;
+}
+
+.detail-card span {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.detail-card strong {
+  display: block;
+  font-size: 1.4rem;
+  color: #ffffff;
+  margin-top: 0.2rem;
+}
+
+.detail-card.text-green-box strong { color: #34d399; }
+
+.breakdown-section h4 {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.breakdown-list {
+  background: #081120;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 0.5rem;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #1e293b;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.breakdown-item:last-child { border-bottom: none; }
+
+.breakdown-item strong { color: #00d4ff; }
+
+.no-data {
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.modal-footer {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-secondary {
+  background: #1e293b;
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover { background: #334155; }
 </style>
