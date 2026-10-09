@@ -3,8 +3,6 @@ import { useAuth, loadSession } from '../composables/useAuth.js'
 import { defaultRoutes } from '../data/menu.js'
 import AppLayout from '../components/layout/AppLayout.vue'
 
-loadSession()
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -104,24 +102,29 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  loadSession()
   const { isAuthenticated, currentUser } = useAuth()
 
+  // 1. Manejo de la raíz del sistema (/)
   if (to.path === '/' || to.path === '') {
     if (!isAuthenticated()) return '/login'
-    return defaultRoutes[currentUser.value.rol] || '/login'
+    return defaultRoutes[currentUser.value?.rol] || '/login'
   }
 
+  // 2. Control de acceso para no autenticados
   if (to.meta.guest) {
     if (isAuthenticated()) {
-      return defaultRoutes[currentUser.value.rol] || '/'
+      return defaultRoutes[currentUser.value?.rol] || '/'
     }
     return true
   }
 
+  // 3. Verificación de autenticación requerida
   if (to.matched.some((r) => r.meta.requiresAuth) && !isAuthenticated()) {
     return '/login'
   }
 
+  // 4. Verificación de rol
   const neededRole = to.meta.role
   if (neededRole && currentUser.value?.rol !== neededRole) {
     return defaultRoutes[currentUser.value?.rol] || '/login'

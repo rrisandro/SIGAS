@@ -1,158 +1,81 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="admin-page">
+    <header class="header-banner">
       <div>
-        <h2 class="text-xl font-medium text-gray-700">Familias</h2>
-        <p class="text-sm text-gray-500">CRUD de familias beneficiarias</p>
+        <div class="badge">Censo y Registro</div>
+        <h1>Gestión de Familias</h1>
+        <p>Listado general de familias censadas en el sistema SIGAS</p>
       </div>
-      <BaseButton @click="openCreate">Nueva familia</BaseButton>
+    </header>
+
+    <div class="table-card">
+      <div v-if="loading" class="loading-state"><div class="spinner"></div>Cargando familias...</div>
+      
+      <div v-else class="table-wrapper">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Cédula (ID)</th>
+              <th>Nombre de la Familia</th>
+              <th>Calle</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="fam in familias" :key="fam.id">
+              <td class="id-cell">V-{{ fam.id }}</td>
+              <td>{{ fam.nombre_familia }}</td>
+              <td><span class="badge-calle">{{ fam.calles?.nombre || 'Sin Calle' }}</span></td>
+              <td>
+                <span class="status-badge" :class="{ active: fam.activo }">
+                  {{ fam.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-
-    <CrudDataTable
-      :columns="columns"
-      :rows="rows"
-      :search-keys="['nombre', 'calle', 'direccion']"
-    >
-      <template #cell-activo="{ row }">
-        <div class="flex items-center gap-2">
-          <ToggleSwitch :model-value="row.activo" @update:model-value="toggle(row)" />
-          <StatusBadge :status="row.activo ? 'activo' : 'inactivo'" />
-        </div>
-      </template>
-      <template #actions="{ row }">
-        <BaseButton size="sm" variant="outline" @click="openEdit(row)">Editar</BaseButton>
-      </template>
-    </CrudDataTable>
-
-    <Teleport to="body">
-      <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-gray-700/30" @click="showForm = false" />
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-          <h3 class="text-lg font-medium text-gray-700">{{ editing ? 'Editar familia' : 'Nueva familia' }}</h3>
-          <div class="mt-4 space-y-3">
-            <BaseInput v-model="form.nombre" label="Nombre" />
-            <BaseInput v-model="form.direccion" label="Dirección" />
-            <BaseInput v-model="form.personas" label="Personas" type="number" />
-            <BaseSelect v-model="form.calleId" label="Calle" :options="calleOptions" />
-            <BaseSelect v-model="form.jefeCalleId" label="Jefe de calle" :options="jefeOptions" />
-          </div>
-          <div class="mt-6 flex justify-end gap-2">
-            <BaseButton variant="ghost" @click="showForm = false">Cancelar</BaseButton>
-            <BaseButton @click="save">Guardar</BaseButton>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import CrudDataTable from '../../components/ui/CrudDataTable.vue'
-import BaseButton from '../../components/ui/BaseButton.vue'
-import BaseInput from '../../components/ui/BaseInput.vue'
-import BaseSelect from '../../components/ui/BaseSelect.vue'
-import ToggleSwitch from '../../components/ui/ToggleSwitch.vue'
-import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { useAuth } from '../../composables/useAuth.js'
-import { useMockData } from '../../composables/useMockData.js'
+import { ref, onMounted } from 'vue'
+import { supabase } from '../../composables/supabase.js'
 
-const { currentUser } = useAuth()
-const {
-  familias,
-  calles,
-  jefes,
-  addFamilia,
-  updateFamilia,
-  toggleActivo,
-  addAuditoria,
-  getCalleNombre,
-} = useMockData()
+const familias = ref([])
+const loading = ref(true)
 
-const columns = [
-  { key: 'id', label: '#' },
-  { key: 'nombre', label: 'Nombre' },
-  { key: 'calle', label: 'Calle' },
-  { key: 'direccion', label: 'Dirección' },
-  { key: 'personas', label: 'Personas' },
-  { key: 'activo', label: 'Estado' },
-]
+async function cargarFamilias() {
+  loading.value = true
+  const { data } = await supabase
+    .from('familias')
+    .select('*, calles(nombre)')
+    .eq('id_cargo', 3) // Filtrar por cargo de familia
 
-const rows = computed(() =>
-  familias.value.map((f) => ({ ...f, calle: getCalleNombre(f.calleId) }))
-)
-
-const calleOptions = computed(() =>
-  calles.value.filter((c) => c.activo).map((c) => ({ value: c.id, label: c.nombre }))
-)
-
-const jefeOptions = computed(() =>
-  jefes.value.filter((j) => j.activo).map((j) => ({ value: j.id, label: j.nombre }))
-)
-
-const showForm = ref(false)
-const editing = ref(null)
-const form = reactive({
-  nombre: '',
-  direccion: '',
-  personas: 1,
-  calleId: '',
-  jefeCalleId: '',
-})
-
-function openCreate() {
-  editing.value = null
-  Object.assign(form, { nombre: '', direccion: '', personas: 1, calleId: '', jefeCalleId: '' })
-  showForm.value = true
+  if (data) familias.value = data
+  loading.value = false
 }
 
-function openEdit(row) {
-  editing.value = row
-  Object.assign(form, {
-    nombre: row.nombre,
-    direccion: row.direccion,
-    personas: row.personas,
-    calleId: row.calleId,
-    jefeCalleId: row.jefeCalleId,
-  })
-  showForm.value = true
-}
-
-function save() {
-  const payload = {
-    nombre: form.nombre,
-    direccion: form.direccion,
-    personas: Number(form.personas),
-    calleId: Number(form.calleId),
-    jefeCalleId: Number(form.jefeCalleId),
-  }
-  if (editing.value) {
-    updateFamilia(editing.value.id, payload)
-    addAuditoria({
-      usuario: currentUser.value.username,
-      accion: 'Modificar',
-      entidad: 'Familia',
-      detalle: form.nombre,
-    })
-  } else {
-    addFamilia(payload)
-    addAuditoria({
-      usuario: currentUser.value.username,
-      accion: 'Crear',
-      entidad: 'Familia',
-      detalle: form.nombre,
-    })
-  }
-  showForm.value = false
-}
-
-function toggle(row) {
-  toggleActivo(familias, row.id)
-  addAuditoria({
-    usuario: currentUser.value.username,
-    accion: row.activo ? 'Activar' : 'Desactivar',
-    entidad: 'Familia',
-    detalle: row.nombre,
-  })
-}
+onMounted(cargarFamilias)
 </script>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+.admin-page { font-family: 'Poppins', sans-serif; color: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.header-banner { background: linear-gradient(135deg, rgba(0, 114, 206, 0.4), rgba(255, 122, 0, 0.2)); backdrop-filter: blur(16px); border: 1px solid rgba(0, 114, 206, 0.4); border-radius: 20px; padding: 1.8rem 2rem; }
+.badge { display: inline-block; background: rgba(0, 114, 206, 0.3); color: #38b6ff; border: 1px solid rgba(56, 182, 255, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+.header-banner h1 { margin: 0; font-size: 1.6rem; }
+.header-banner p { margin: 0.3rem 0 0 0; color: #a0aec0; font-size: 0.9rem; }
+.table-card { background: rgba(15, 23, 36, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(50, 132, 209, 0.3); border-radius: 20px; padding: 1.5rem; }
+.custom-table { width: 100%; border-collapse: collapse; text-align: left; }
+.custom-table th { padding: 0.8rem 1rem; font-size: 0.8rem; color: #a0aec0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.custom-table td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.id-cell { font-weight: 600; color: #38b6ff; }
+.badge-calle { background: rgba(255, 255, 255, 0.08); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; }
+.status-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.status-badge.active { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.loading-state { text-align: center; padding: 3rem; color: #a0aec0; }
+.spinner { width: 30px; height: 30px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #0072ce; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 0.5rem auto; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>

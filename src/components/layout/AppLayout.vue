@@ -22,3 +22,18 @@ import AppHeader from './AppHeader.vue'
 
 const sidebarOpen = ref(false)
 </script>
+
+<style>
+/* Quitar subrayados de los enlaces del menú */
+nav a,
+nav router-link,
+.sidebar a,
+.sidebar router-link {
+  text-decoration: none !important;
+}
+
+nav a:hover,
+nav router-link:hover {
+  text-decoration: none !important;
+}
+</style>
