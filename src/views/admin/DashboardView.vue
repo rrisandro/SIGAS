@@ -18,7 +18,7 @@
       </button>
     </header>
 
-    <!-- TARJETAS DE MÉTRICAS -->
+    <!-- TARJETAS DE MÉTRICAS (MÁS ROBUSTAS E INTERACTIVAS) -->
     <div class="metrics-grid">
       <div class="metric-card border-blue">
         <div class="card-icon blue">
@@ -358,108 +358,101 @@ function obtenerNombreCalle(idCalle) {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 .admin-dashboard {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #f8fafc;
-  padding: 2rem;
+  font-family: 'Poppins', sans-serif;
+  color: #1e293b;
+  padding: 2.2rem;
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
-  background-color: #060d1a;
+  background-color: #060d1a; /* Tono profundo elegante inspirado en el login */
   min-height: 100vh;
 }
 
-/* BANNER HEADER PREMIUM */
+/* BANNER PRINCIPAL CON ACENTO AZUL CLARO */
 .header-banner {
-  background: linear-gradient(135deg, #0f1d36 0%, #172a4d 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-left: 6px solid #0072CE;
   border-radius: 20px;
-  padding: 2.2rem;
+  padding: 2.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 114, 206, 0.08);
+  transition: all 0.3s ease;
 }
 
-.header-banner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 350px;
-  height: 100%;
-  background: radial-gradient(circle, rgba(0, 168, 255, 0.12) 0%, transparent 70%);
-  pointer-events: none;
+.header-banner:hover {
+  box-shadow: 0 15px 30px -5px rgba(0, 114, 206, 0.15);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 212, 255, 0.12);
-  color: #00d4ff;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(0, 114, 206, 0.1);
+  color: #0072CE;
+  border: 1px solid rgba(0, 114, 206, 0.25);
   padding: 6px 14px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
-  background-color: #00d4ff;
+  width: 8px;
+  height: 8px;
+  background-color: #0072CE;
   border-radius: 50%;
-  box-shadow: 0 0 10px #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.2);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 14px #00d4ff; }
+  50% { transform: scale(1.3); opacity: 1; }
   100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 .banner-content h1 {
   margin: 0;
-  font-size: 1.85rem;
+  font-size: 1.95rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -0.02em;
 }
 
 .banner-content p {
   margin: 0.4rem 0 0 0;
-  color: #94a3b8;
-  font-size: 0.92rem;
+  color: #64748b;
+  font-size: 0.95rem;
 }
 
 .refresh-btn {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, #0072ff 0%, #0051bb 100%);
+  background: linear-gradient(135deg, #0072CE 0%, #227cc5 100%);
   color: #ffffff;
   border: none;
-  padding: 0.85rem 1.6rem;
-  border-radius: 12px;
+  padding: 0.9rem 1.8rem;
+  border-radius: 14px;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 114, 206, 0.35);
   z-index: 1;
 }
 
 .refresh-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #0085ff 0%, #0060d4 100%);
-  box-shadow: 0 6px 20px rgba(0, 114, 255, 0.6);
+  background: linear-gradient(135deg, #0084eb 0%, #005aa3 100%);
+  box-shadow: 0 6px 20px rgba(0, 114, 206, 0.5);
 }
 
 .refresh-btn .icon {
@@ -475,40 +468,39 @@ function obtenerNombreCalle(idCalle) {
   100% { transform: rotate(360deg); }
 }
 
-/* MÉTRICAS GRID */
+/* MÉTRICAS GRID (CONTENEDORES MÁS GRANDES Y ELEVADOS) */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.25rem;
 }
 
 .metric-card {
-  background: #0f1d36;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 18px;
-  padding: 1.35rem 1.6rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 1.8rem;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  gap: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.05);
 }
 
 .metric-card.border-blue { border-left: 4px solid #0072ff; }
 .metric-card.border-cyan { border-left: 4px solid #00d4ff; }
-.metric-card.border-amber { border-left: 4px solid #f59e0b; }
 .metric-card.border-green { border-left: 4px solid #10b981; }
 
 .metric-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 25px -5px rgba(0, 114, 206, 0.15);
+  border-color: #94a3b8;
 }
 
 .card-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -516,103 +508,120 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .card-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
 }
 
 .card-icon.blue { background: rgba(0, 114, 255, 0.15); color: #3b82f6; }
 .card-icon.cyan { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
-.card-icon.amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 .card-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 
 .metric-info h3 {
   margin: 0;
-  font-size: 0.78rem;
-  color: #94a3b8;
+  font-size: 0.82rem;
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .metric-info .number {
-  margin: 0.25rem 0;
-  font-size: 1.8rem;
+  margin: 0.3rem 0;
+  font-size: 2.1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #0f172a;
+}
+
+.metric-info .number.status {
+  color: #34d399;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.server-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #34d399;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #34d399;
+  animation: pulse 2s infinite;
 }
 
 .metric-info .subtext {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: 0.8rem;
+  color: #94a3b8;
 }
 
-/* TABLA DE REGISTROS */
+/* TABLA DE REGISTROS (MÁS AMPLIA Y LIMPIA) */
 .table-card {
-  background: #0f1d36;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 20px;
-  padding: 1.6rem;
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 22px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.6rem;
+  margin-bottom: 1.8rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.2rem;
 }
 
 .table-header h2 {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .table-header p {
   margin: 0.3rem 0 0 0;
-  font-size: 0.85rem;
-  color: #94a3b8;
+  font-size: 0.9rem;
+  color: #64748b;
 }
 
 .search-box {
   position: relative;
   width: 100%;
-  max-width: 300px;
+  max-width: 320px;
 }
 
 .search-box input {
   width: 100%;
-  background: #081120;
-  border: 1px solid #1e293b;
-  padding: 0.75rem 1rem 0.75rem 2.4rem;
-  border-radius: 12px;
-  color: #ffffff;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 0.85rem 1.1rem 0.85rem 2.6rem;
+  border-radius: 14px;
+  color: #0f172a;
   outline: none;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.85rem;
-  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
 .search-box input::placeholder {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .search-box input:focus {
-  border-color: #00d4ff;
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+  border-color: #0072CE;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 114, 206, 0.12);
 }
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: #64748b;
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
 }
 
 .table-wrapper {
@@ -626,68 +635,68 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .custom-table th {
-  padding: 1rem;
-  font-size: 0.75rem;
+  padding: 1.1rem 1.2rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
-  background-color: rgba(8, 17, 32, 0.6);
-  border-bottom: 1px solid #1e293b;
-  font-weight: 600;
+  color: #475569;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 700;
 }
 
 .custom-table td {
-  padding: 1.1rem 1rem;
-  border-bottom: 1px solid #1e293b;
-  font-size: 0.9rem;
-  color: #e2e8f0;
+  padding: 1.25rem 1.2rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.92rem;
+  color: #334155;
 }
 
 .table-row {
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .table-row:hover {
-  background-color: rgba(30, 41, 59, 0.4);
+  background-color: #f8fafc;
 }
 
 .id-cell {
-  font-weight: 600;
-  color: #00d4ff;
+  font-weight: 700;
+  color: #0072CE;
 }
 
 .name-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .family-name {
-  font-weight: 500;
-  color: #f8fafc;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #0072ff, #00d4ff);
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  background-color: rgba(0, 114, 206, 0.12);
+  color: #0072CE;
+  font-weight: 700;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: #ffffff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  font-size: 0.88rem;
+  border: 1px solid rgba(0, 114, 206, 0.2);
 }
 
 .badge-calle {
-  background: #081120;
-  border: 1px solid #1e293b;
-  padding: 5px 10px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
   border-radius: 8px;
-  font-size: 0.8rem;
-  color: #cbd5e1;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
@@ -718,78 +727,77 @@ function obtenerNombreCalle(idCalle) {
   background: rgba(0, 212, 255, 0.25);
 }
 
-/* ESTILOS DEL SELECTOR DE ROL */
+/* SELECTOR DE ROL CON ACENTO AZUL CLARO */
 .role-select {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
   font-weight: 600;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
   outline: none;
   transition: all 0.2s ease;
 }
 
 .role-select.role-1 {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .role-select.role-2 {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .role-select.role-3 {
-  background: rgba(0, 114, 255, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(0, 114, 255, 0.3);
+  background: rgba(0, 114, 206, 0.1);
+  color: #0072CE;
+  border: 1px solid rgba(0, 114, 206, 0.3);
 }
 
-.role-select option {
-  background: #0f1d36;
-  color: #ffffff;
+.role-select:focus {
+  box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.15);
 }
 
 .status-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 7px;
+  padding: 5px 12px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .status-indicator.active {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.3);
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
-  background-color: currentColor;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  background-color: currentColor;
 }
 
 .loading-state, .empty-state {
-  padding: 3rem;
+  padding: 3.5rem;
   text-align: center;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #00d4ff;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0072CE;
   border-radius: 50%;
   animation: spin 1s infinite linear;
   margin: 0 auto 1rem auto;
