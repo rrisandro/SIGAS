@@ -362,104 +362,90 @@ function obtenerNombreCalle(idCalle) {
 
 .admin-dashboard {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #f8fafc;
+  color: #0f172a;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
-  background-color: #060d1a;
+  background-color: #f8fafc !important; /* Fondo gris claro estilo SaaS */
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
-/* BANNER HEADER PREMIUM */
+/* BANNER PRINCIPAL CON ESTILO CORPORATIVO CLARO */
 .header-banner {
-  background: linear-gradient(135deg, #0f1d36 0%, #172a4d 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 20px;
-  padding: 2.2rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 6px solid #0072CE;
+  border-radius: 18px;
+  padding: 2rem 2.2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-}
-
-.header-banner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 350px;
-  height: 100%;
-  background: radial-gradient(circle, rgba(0, 168, 255, 0.12) 0%, transparent 70%);
-  pointer-events: none;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 212, 255, 0.12);
-  color: #00d4ff;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  padding: 6px 14px;
+  background: #eff6ff;
+  color: #0072CE;
+  border: 1px solid #dbeafe;
+  padding: 5px 12px;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .pulse-dot {
   width: 7px;
   height: 7px;
-  background-color: #00d4ff;
+  background-color: #0072CE;
   border-radius: 50%;
-  box-shadow: 0 0 10px #00d4ff;
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 14px #00d4ff; }
+  50% { transform: scale(1.3); opacity: 1; }
   100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 .banner-content h1 {
   margin: 0;
-  font-size: 1.85rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -0.02em;
 }
 
 .banner-content p {
-  margin: 0.4rem 0 0 0;
-  color: #94a3b8;
-  font-size: 0.92rem;
+  margin: 0.3rem 0 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
 }
 
 .refresh-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, #0072ff 0%, #0051bb 100%);
+  gap: 8px;
+  background: #0072CE;
   color: #ffffff;
   border: none;
-  padding: 0.85rem 1.6rem;
+  padding: 0.75rem 1.4rem;
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
-  z-index: 1;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .refresh-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, #0085ff 0%, #0060d4 100%);
-  box-shadow: 0 6px 20px rgba(0, 114, 255, 0.6);
+  background: #005aa3;
+  transform: translateY(-1px);
 }
 
 .refresh-btn .icon {
@@ -478,37 +464,36 @@ function obtenerNombreCalle(idCalle) {
 /* MÉTRICAS GRID */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.25rem;
 }
 
 .metric-card {
-  background: #0f1d36;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 18px;
-  padding: 1.35rem 1.6rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.35rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
 }
 
-.metric-card.border-blue { border-left: 4px solid #0072ff; }
-.metric-card.border-cyan { border-left: 4px solid #00d4ff; }
+.metric-card.border-blue { border-left: 4px solid #0072CE; }
+.metric-card.border-cyan { border-left: 4px solid #06b6d4; }
 .metric-card.border-amber { border-left: 4px solid #f59e0b; }
 .metric-card.border-green { border-left: 4px solid #10b981; }
 
 .metric-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .card-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -516,65 +501,65 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .card-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
-.card-icon.blue { background: rgba(0, 114, 255, 0.15); color: #3b82f6; }
-.card-icon.cyan { background: rgba(0, 212, 255, 0.15); color: #00d4ff; }
-.card-icon.amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.card-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.card-icon.blue { background: #eff6ff; color: #0072CE; }
+.card-icon.cyan { background: #ecfeff; color: #0891b2; }
+.card-icon.amber { background: #fffbeb; color: #d97706; }
+.card-icon.green { background: #ecfdf5; color: #059669; }
 
 .metric-info h3 {
   margin: 0;
-  font-size: 0.78rem;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .metric-info .number {
-  margin: 0.25rem 0;
-  font-size: 1.8rem;
+  margin: 0.2rem 0;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #0f172a;
 }
 
 .metric-info .subtext {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #94a3b8;
 }
 
-/* TABLA DE REGISTROS */
+/* TABLAS CLARAS Y LIMPIAS */
 .table-card {
-  background: #0f1d36;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
   padding: 1.6rem;
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.6rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
   gap: 1rem;
 }
 
 .table-header h2 {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .table-header p {
-  margin: 0.3rem 0 0 0;
+  margin: 0.2rem 0 0 0;
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .search-box {
@@ -585,24 +570,25 @@ function obtenerNombreCalle(idCalle) {
 
 .search-box input {
   width: 100%;
-  background: #081120;
-  border: 1px solid #1e293b;
-  padding: 0.75rem 1rem 0.75rem 2.4rem;
-  border-radius: 12px;
-  color: #ffffff;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 0.65rem 1rem 0.65rem 2.4rem;
+  border-radius: 10px;
+  color: #0f172a;
   outline: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.85rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .search-box input::placeholder {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .search-box input:focus {
-  border-color: #00d4ff;
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+  border-color: #0072CE;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.1);
 }
 
 .search-icon {
@@ -612,7 +598,7 @@ function obtenerNombreCalle(idCalle) {
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .table-wrapper {
@@ -626,86 +612,82 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .custom-table th {
-  padding: 1rem;
-  font-size: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
-  background-color: rgba(8, 17, 32, 0.6);
-  border-bottom: 1px solid #1e293b;
+  color: #64748b;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
   font-weight: 600;
 }
 
 .custom-table td {
-  padding: 1.1rem 1rem;
-  border-bottom: 1px solid #1e293b;
-  font-size: 0.9rem;
-  color: #e2e8f0;
-}
-
-.table-row {
-  transition: background-color 0.2s ease;
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+  color: #334155;
 }
 
 .table-row:hover {
-  background-color: rgba(30, 41, 59, 0.4);
+  background-color: #f8fafc;
 }
 
 .id-cell {
   font-weight: 600;
-  color: #00d4ff;
+  color: #0072CE;
 }
 
 .name-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .family-name {
   font-weight: 500;
-  color: #f8fafc;
+  color: #0f172a;
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #0072ff, #00d4ff);
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  background-color: #eff6ff;
+  color: #0072CE;
+  font-weight: 700;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: #ffffff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  font-size: 0.8rem;
 }
 
 .badge-calle {
-  background: #081120;
-  border: 1px solid #1e293b;
-  padding: 5px 10px;
-  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-size: 0.8rem;
-  color: #cbd5e1;
   font-weight: 500;
 }
 
 .qty-badge {
-  background: #081120;
-  border: 1px solid #1e293b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.82rem;
-  color: #cbd5e1;
+  color: #475569;
+  font-weight: 500;
 }
 
-.text-green { color: #34d399; }
+.text-green { color: #059669; }
 
 .action-btn-detail {
-  background: rgba(0, 212, 255, 0.1);
-  color: #00d4ff;
-  border: 1px solid rgba(0, 212, 255, 0.25);
+  background: #eff6ff;
+  color: #0072CE;
+  border: 1px solid #bfdbfe;
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.78rem;
@@ -715,13 +697,13 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .action-btn-detail:hover {
-  background: rgba(0, 212, 255, 0.25);
+  background: #dbeafe;
 }
 
-/* ESTILOS DEL SELECTOR DE ROL */
+/* SELECTOR DE ROL */
 .role-select {
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -731,26 +713,21 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .role-select.role-1 {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .role-select.role-2 {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
 }
 
 .role-select.role-3 {
-  background: rgba(0, 114, 255, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(0, 114, 255, 0.3);
-}
-
-.role-select option {
-  background: #0f1d36;
-  color: #ffffff;
+  background: #eff6ff;
+  color: #0072CE;
+  border: 1px solid #bfdbfe;
 }
 
 .status-indicator {
@@ -761,15 +738,15 @@ function obtenerNombreCalle(idCalle) {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .status-indicator.active {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.3);
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
 }
 
 .status-dot {
@@ -782,40 +759,40 @@ function obtenerNombreCalle(idCalle) {
 .loading-state, .empty-state {
   padding: 3rem;
   text-align: center;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #00d4ff;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0072CE;
   border-radius: 50%;
   animation: spin 1s infinite linear;
   margin: 0 auto 1rem auto;
 }
 
-/* MODAL DE DETALLE */
+/* MODAL DE DETALLE CLARO */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.75);
-  backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 100;
   padding: 1rem;
 }
 
 .modal-box {
-  background: #0f1d36;
-  border: 1px solid rgba(0, 212, 255, 0.25);
-  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
   width: 100%;
   max-width: 480px;
-  padding: 1.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  padding: 1.8rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .modal-header {
@@ -828,13 +805,13 @@ function obtenerNombreCalle(idCalle) {
 .modal-header h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: #ffffff;
+  color: #0f172a;
 }
 
 .modal-header p {
   margin: 0.2rem 0 0 0;
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: 0.85rem;
+  color: #64748b;
 }
 
 .close-modal {
@@ -845,7 +822,7 @@ function obtenerNombreCalle(idCalle) {
   cursor: pointer;
 }
 
-.close-modal:hover { color: #ffffff; }
+.close-modal:hover { color: #0f172a; }
 
 .detail-stats-grid {
   display: grid;
@@ -855,8 +832,8 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .detail-card {
-  background: #081120;
-  border: 1px solid #1e293b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   padding: 0.85rem;
   border-radius: 12px;
 }
@@ -864,29 +841,31 @@ function obtenerNombreCalle(idCalle) {
 .detail-card span {
   display: block;
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .detail-card strong {
   display: block;
   font-size: 1.4rem;
-  color: #ffffff;
+  color: #0f172a;
   margin-top: 0.2rem;
 }
 
-.detail-card.text-green-box strong { color: #34d399; }
+.detail-card.text-green-box strong { color: #059669; }
 
 .breakdown-section h4 {
   margin: 0 0 0.6rem 0;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .breakdown-list {
-  background: #081120;
-  border: 1px solid #1e293b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 0.5rem;
 }
@@ -894,15 +873,15 @@ function obtenerNombreCalle(idCalle) {
 .breakdown-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid #1e293b;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
   font-size: 0.85rem;
-  color: #e2e8f0;
+  color: #334155;
 }
 
 .breakdown-item:last-child { border-bottom: none; }
 
-.breakdown-item strong { color: #00d4ff; }
+.breakdown-item strong { color: #0072CE; }
 
 .no-data {
   padding: 0.75rem;
@@ -918,14 +897,16 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .btn-secondary {
-  background: #1e293b;
-  color: #ffffff;
-  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
   padding: 0.6rem 1.2rem;
   border-radius: 10px;
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.btn-secondary:hover { background: #334155; }
+.btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
 </style>
