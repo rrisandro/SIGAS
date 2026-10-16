@@ -47,15 +47,6 @@
         </div>
 
         <button type="button" class="button3" @click="onForgotClick">¿Olvidaste tu contraseña?</button>
-
-        <div class="demo-box">
-          <p class="demo-title">Cuentas de demo</p>
-          <ul>
-            <li>Admin: <span>admin@sigas.com / admin123</span></li>
-            <li>Jefe: <span>carlos.mendoza@sigas.com / jefe123</span></li>
-            <li>Familia: <span>familia.perez@sigas.com / familia123</span></li>
-          </ul>
-        </div>
       </form>
     </div>
 
@@ -185,7 +176,7 @@ async function handleLogin() {
 
   const userRole = cargoMap[familiaData?.id_cargo] || 'familia'
 
-  // 3. Establecer la sesión en useAuth y localStorage para pasar las verificaciones de tu router
+  // 3. Establecer la sesión en useAuth y localStorage
   setSession({
     id: familiaData?.id || authData.user.id,
     authId: authData.user.id,
@@ -194,7 +185,7 @@ async function handleLogin() {
     rol: userRole,
   })
 
-  // 4. Redirigir a las rutas completas según el rol
+  // 4. Redirigir según el rol
   if (userRole === 'admin') {
     router.push('/admin/dashboard')
   } else if (userRole === 'jefe') {
@@ -204,7 +195,7 @@ async function handleLogin() {
   }
 }
 
-// Proceso de Registro Completo (Actualizado para prevenir duplicados)
+// Proceso de Registro Completo
 async function handleRegister() {
   regError.value = ''
   loadingReg.value = true
@@ -231,14 +222,13 @@ async function handleRegister() {
     return
   }
 
-  // Validación extra por seguridad si Supabase devuelve identidades vacías en reintentos
   if (authData?.user?.identities && authData.user.identities.length === 0) {
     loadingReg.value = false
     regError.value = 'Este correo electrónico ya se encuentra registrado en el sistema.'
     return
   }
 
-  // 2. Insertar registro en la tabla 'familias' asignando id_cargo: 3 (Familia)
+  // 2. Insertar registro en la tabla 'familias'
   const { error: dbError } = await supabase.from('familias').insert([
     {
       id: parseInt(regCedula.value),
@@ -288,7 +278,8 @@ function onForgotClick() {
   justify-content: center;
   align-items: center;
   background-repeat: no-repeat;
-  background-position: center center;
+  /* Desplaza la imagen de fondo más hacia abajo para que el texto SIGAS quede visible abajo del login */
+  background-position: center 92%;
   background-size: cover;
   background-attachment: fixed;
   font-family: 'Poppins', sans-serif;
@@ -309,28 +300,28 @@ function onForgotClick() {
   z-index: 1;
   background: linear-gradient(135deg, rgba(0, 114, 206, 0.3), rgba(255, 122, 0, 0.15));
   padding: 2px;
-  border-radius: 24px;
-  box-shadow: 0px 10px 35px rgba(56, 152, 216, 0.8), 0px 0px 20px rgba(67, 162, 218, 0.2);
+  border-radius: 26px;
+  box-shadow: 0px 12px 40px rgba(56, 152, 216, 0.8), 0px 0px 25px rgba(67, 162, 218, 0.2);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.8), 0px 0px 30px rgba(0, 114, 206, 0.4);
+  box-shadow: 0px 18px 45px rgba(0, 0, 0, 0.8), 0px 0px 35px rgba(0, 114, 206, 0.4);
 }
 
 .form {
-  width: 390px;
-  padding: 2.5em 2em;
-  background-color: rgba(15, 23, 36, 0.75);
+  width: 420px; /* Login un poco más ancho y grande */
+  padding: 2.8em 2.4em;
+  background-color: rgba(15, 23, 36, 0.80);
   color: #fff;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid rgb(50, 132, 209);
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 16px;
 }
 
 .logo-container {
@@ -340,8 +331,8 @@ function onForgotClick() {
 }
 
 .brand-logo {
-  width: 115px;
-  height: 115px;
+  width: 125px; /* Logo interno un poco más grande */
+  height: 125px;
   border-radius: 50%;
   object-fit: cover;
   background-color: #3473d1;
@@ -358,7 +349,7 @@ function onForgotClick() {
   text-align: center;
   margin: 0 0 10px 0;
   color: #ffffff;
-  font-size: 1.5em;
+  font-size: 1.65em;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5);
@@ -369,7 +360,7 @@ function onForgotClick() {
   align-items: center;
   gap: 0.8em;
   border-radius: 12px;
-  padding: 0.8em 1em;
+  padding: 0.85em 1.1em;
   background-color: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
@@ -382,8 +373,8 @@ function onForgotClick() {
 }
 
 .input-icon {
-  height: 1.2em;
-  width: 1.2em;
+  height: 1.25em;
+  width: 1.25em;
   fill: #ffffff;
   transition: fill 0.3s ease;
   flex-shrink: 0;
@@ -395,7 +386,7 @@ function onForgotClick() {
   outline: none;
   width: 100%;
   color: #ffffff;
-  font-size: 0.95em;
+  font-size: 1em;
   font-family: 'Poppins', sans-serif;
 }
 
@@ -424,13 +415,13 @@ function onForgotClick() {
 
 .btn-group {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-top: 1em;
 }
 
 .button1 {
   flex: 1;
-  padding: 0.8em;
+  padding: 0.85em;
   border-radius: 10px;
   border: none;
   font-family: 'Poppins', sans-serif;
@@ -455,7 +446,7 @@ function onForgotClick() {
 
 .button2 {
   flex: 1;
-  padding: 0.8em;
+  padding: 0.85em;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.05);
@@ -477,10 +468,10 @@ function onForgotClick() {
   background: none;
   border: none;
   color: #a0aec0;
-  font-size: 0.85em;
+  font-size: 0.9em;
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
-  margin-top: 0.5em;
+  margin-top: 0.6em;
   transition: color 0.3s ease;
   text-align: center;
 }
@@ -488,36 +479,6 @@ function onForgotClick() {
 .button3:hover {
   color: var(--accent-orange);
   text-decoration: underline;
-}
-
-.demo-box {
-  margin-top: 0.8em;
-  padding: 0.8em 1em;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.demo-title {
-  margin: 0 0 0.4em 0;
-  font-size: 0.75em;
-  font-weight: 600;
-  color: #d1d5db;
-}
-
-.demo-box ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.72em;
-  color: #a0aec0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2em;
-}
-
-.demo-box span {
-  color: #e2e8f0;
 }
 
 /* MODAL DE REGISTRO */
@@ -536,7 +497,7 @@ function onForgotClick() {
   background: #0f1724;
   padding: 2em;
   border-radius: 20px;
-  width: 390px;
+  width: 420px;
   border: 1px solid #0072CE;
   box-shadow: 0 10px 30px rgba(0,0,0,0.8);
 }

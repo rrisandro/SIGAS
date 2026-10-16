@@ -22,11 +22,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="calle in calles" :key="calle.id_calle">
+            <tr v-for="calle in calles" :key="calle.id_calle" class="table-row">
               <td class="id-cell">#{{ calle.id_calle }}</td>
-              <td>{{ calle.nombre }}</td>
+              <td class="name-cell">{{ calle.nombre }}</td>
               <td>
                 <span class="status-badge" :class="{ active: calle.activo }">
+                  <span class="status-dot"></span>
                   {{ calle.activo ? 'Activa' : 'Inactiva' }}
                 </span>
               </td>
@@ -40,7 +41,7 @@
     <div v-if="mostrarModal" class="modal-overlay">
       <div class="modal-card">
         <h3>Registrar Nueva Calle</h3>
-        <form @submit.prevent="guardarCalle">
+        <form @submit.prevent="guardarCalle" class="modal-form">
           <div class="field">
             <input v-model="nombreNuevaCalle" type="text" placeholder="Nombre de la Calle" required class="input-field" />
           </div>
@@ -88,30 +89,271 @@ onMounted(cargarCalles)
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-.admin-page { font-family: 'Poppins', sans-serif; color: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.header-banner { background: linear-gradient(135deg, rgba(0, 114, 206, 0.4), rgba(255, 122, 0, 0.2)); backdrop-filter: blur(16px); border: 1px solid rgba(0, 114, 206, 0.4); border-radius: 20px; padding: 1.8rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-.badge { display: inline-block; background: rgba(0, 114, 206, 0.3); color: #38b6ff; border: 1px solid rgba(56, 182, 255, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; }
-.header-banner h1 { margin: 0; font-size: 1.6rem; }
-.header-banner p { margin: 0.3rem 0 0 0; color: #a0aec0; font-size: 0.9rem; }
-.action-btn { background: linear-gradient(135deg, #0072CE 0%, #005aa3 100%); color: #fff; border: none; padding: 0.7rem 1.3rem; border-radius: 12px; font-weight: 600; cursor: pointer; }
-.table-card { background: rgba(15, 23, 36, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(50, 132, 209, 0.3); border-radius: 20px; padding: 1.5rem; }
-.custom-table { width: 100%; border-collapse: collapse; text-align: left; }
-.custom-table th { padding: 0.8rem 1rem; font-size: 0.8rem; color: #a0aec0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.custom-table td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-.id-cell { font-weight: 600; color: #38b6ff; }
-.status-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #f87171; }
-.status-badge.active { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
-.loading-state { text-align: center; padding: 2rem; color: #a0aec0; }
-.spinner { width: 30px; height: 30px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #0072ce; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 0.5rem auto; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
+.admin-page { 
+  font-family: 'Plus Jakarta Sans', sans-serif; 
+  color: #1e293b; 
+  padding: 2rem; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 1.75rem; 
+  background-color: #f8fafc; 
+  min-height: 100vh;
+}
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(4px); }
-.modal-card { background: #0f1724; padding: 2em; border-radius: 20px; width: 380px; border: 1px solid #0072CE; }
-.field { margin-bottom: 1rem; }
-.input-field { width: 100%; padding: 0.8rem; border-radius: 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; outline: none; }
-.btn-group { display: flex; gap: 10px; }
-.button1 { flex: 1; padding: 0.8rem; border-radius: 10px; border: none; background: #0072CE; color: white; font-weight: 600; cursor: pointer; }
-.button2 { flex: 1; padding: 0.8rem; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.3); background: transparent; color: white; cursor: pointer; }
+.header-banner { 
+  background: #ffffff; 
+  border: 1px solid #e2e8f0; 
+  border-radius: 20px; 
+  padding: 2.2rem; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.badge { 
+  display: inline-flex; 
+  align-items: center; 
+  background: #eff6ff; 
+  color: #2563eb; 
+  border: 1px solid #dbeafe; 
+  padding: 6px 14px; 
+  border-radius: 20px; 
+  font-size: 0.75rem; 
+  font-weight: 600; 
+  margin-bottom: 0.75rem; 
+}
+
+.header-banner h1 { 
+  margin: 0; 
+  font-size: 1.85rem; 
+  font-weight: 700; 
+  color: #0f172a; 
+  letter-spacing: -0.02em; 
+}
+
+.header-banner p { 
+  margin: 0.4rem 0 0 0; 
+  color: #64748b; 
+  font-size: 0.92rem; 
+}
+
+.action-btn { 
+  background: #2563eb; 
+  color: #ffffff; 
+  border: none; 
+  padding: 0.85rem 1.6rem; 
+  border-radius: 12px; 
+  font-weight: 600; 
+  font-size: 0.88rem;
+  cursor: pointer; 
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.action-btn:hover { 
+  background: #1d4ed8; 
+  transform: translateY(-1px); 
+}
+
+.table-card { 
+  background: #ffffff; 
+  border: 1px solid #e2e8f0; 
+  border-radius: 20px; 
+  padding: 1.6rem; 
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04); 
+}
+
+.table-wrapper { 
+  overflow-x: auto; 
+}
+
+.custom-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  text-align: left; 
+}
+
+.custom-table th { 
+  padding: 1rem; 
+  font-size: 0.75rem; 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em; 
+  color: #64748b; 
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0; 
+  font-weight: 600; 
+}
+
+.custom-table td { 
+  padding: 1.1rem 1rem; 
+  border-bottom: 1px solid #f1f5f9; 
+  font-size: 0.9rem; 
+  color: #334155; 
+}
+
+.table-row { 
+  transition: background-color 0.15s ease; 
+}
+
+.table-row:hover { 
+  background-color: #f8fafc; 
+}
+
+.id-cell { 
+  font-weight: 600; 
+  color: #2563eb; 
+}
+
+.name-cell {
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.status-badge { 
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px; 
+  border-radius: 20px; 
+  font-size: 0.78rem; 
+  font-weight: 600; 
+  background: #fef2f2; 
+  color: #dc2626; 
+  border: 1px solid #fecaca; 
+}
+
+.status-badge.active { 
+  background: #ecfdf5; 
+  color: #059669; 
+  border-color: #a7f3d0; 
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.loading-state { 
+  text-align: center; 
+  padding: 3rem; 
+  color: #64748b; 
+}
+
+.spinner { 
+  width: 32px; 
+  height: 32px; 
+  border: 3px solid #e2e8f0; 
+  border-top-color: #2563eb; 
+  border-radius: 50%; 
+  animation: spin 1s infinite linear; 
+  margin: 0 auto 1rem auto; 
+}
+
+@keyframes spin { 
+  100% { transform: rotate(360deg); } 
+}
+
+.modal-overlay { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0, 0, 0, 0.5); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 100; 
+  backdrop-filter: blur(4px); 
+}
+
+.modal-card { 
+  background: #ffffff; 
+  padding: 2rem; 
+  border-radius: 20px; 
+  width: 400px; 
+  border: 1px solid #e2e8f0; 
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
+}
+
+.modal-card h3 {
+  margin-top: 0;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field { 
+  margin-bottom: 0.5rem; 
+}
+
+.input-field { 
+  width: 100%; 
+  padding: 0.75rem 1rem; 
+  border-radius: 10px; 
+  background: #f8fafc; 
+  border: 1px solid #cbd5e1; 
+  color: #0f172a; 
+  outline: none; 
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.btn-group { 
+  display: flex; 
+  gap: 10px; 
+  margin-top: 0.5rem;
+}
+
+.button1 { 
+  flex: 1; 
+  padding: 0.75rem; 
+  border-radius: 10px; 
+  border: none; 
+  background: #2563eb; 
+  color: white; 
+  font-weight: 600; 
+  font-size: 0.9rem;
+  cursor: pointer; 
+  transition: background 0.2s ease;
+}
+
+.button1:hover {
+  background: #1d4ed8;
+}
+
+.button2 { 
+  flex: 1; 
+  padding: 0.75rem; 
+  border-radius: 10px; 
+  border: 1px solid #cbd5e1; 
+  background: #ffffff; 
+  color: #475569; 
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer; 
+  transition: all 0.2s ease;
+}
+
+.button2:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
 </style>
