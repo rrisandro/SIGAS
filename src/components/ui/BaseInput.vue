@@ -1,6 +1,6 @@
 <template>
-  <div class="w-full">
-    <label v-if="label" class="mb-1.5 block text-sm font-medium text-gray-700">{{ label }}</label>
+  <div class="base-field">
+    <label v-if="label" :for="id" class="base-label">{{ label }}</label>
     <input
       :id="id"
       :type="type"
@@ -8,10 +8,10 @@
       :placeholder="placeholder"
       :disabled="disabled"
       :required="required"
-      class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 disabled:bg-gray-50 disabled:text-gray-500"
+      class="base-input"
       @input="$emit('update:modelValue', $event.target.value)"
     />
-    <p v-if="hint" class="mt-1 text-xs text-gray-500">{{ hint }}</p>
+    <p v-if="hint" class="base-hint">{{ hint }}</p>
   </div>
 </template>
 
@@ -29,3 +29,83 @@ defineProps({
 
 defineEmits(['update:modelValue'])
 </script>
+
+<style scoped>
+.base-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.base-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.base-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 11px;
+  background: #ffffff;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.base-input::placeholder {
+  color: var(--color-muted-light);
+}
+
+.base-input:hover:not(:disabled) {
+  border-color: #bae6fd;
+}
+
+.base-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.base-input:disabled {
+  background: var(--color-bg);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.base-hint {
+  margin-top: 5px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .base-input {
+    height: 40px;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .base-input {
+    height: 38px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+}
+</style>

@@ -1,4 +1,4 @@
-]<template>
+<template>
   <button
     :type="type"
     :disabled="disabled || loading"
@@ -17,6 +17,7 @@
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
@@ -31,7 +32,7 @@ defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (v) => ['primary', 'secondary', 'outline', 'ghost', 'danger', 'success'].includes(v)
+    validator: (v) => ['primary', 'secondary', 'outline', 'ghost', 'danger', 'success', 'warning'].includes(v)
   },
   size: {
     type: String,
@@ -48,160 +49,237 @@ defineEmits(['click'])
 
 <style scoped>
 /* ============================================
-   ESTILO BASE (tu diseño adaptado)
+   Base · mobile-first
    ============================================ */
 .btn-custom {
+  --btn-color: var(--color-primary);
+  --btn-color-hover: var(--color-primary-dark);
+  --btn-shadow: rgba(14, 165, 233, 0.25);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  
-  /* Tamaño base ajustado (más pequeño que 150x60) */
-  width: 130px;
-  height: 45px;
-  
-  border: 3px solid #315cfd;
-  border-radius: 45px;
-  background: white;
-  color: #315cfd;
-  
-  font-size: 0.95em;
-  font-weight: 550;
-  
+  gap: 0.45rem;
+
+  width: auto;
+  max-width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px 20px;
+
+  border: 1.5px solid var(--btn-color);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--btn-color);
+
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+
   cursor: pointer;
-  transition: all 0.3s ease;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), box-shadow var(--transition-fast), transform 120ms ease;
+}
+
+.btn-custom:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-custom:focus-visible {
+  outline: 2px solid var(--btn-color);
+  outline-offset: 2px;
+}
+
+/* En dispositivos táctiles evitamos estados hover persistentes */
+@media (hover: hover) and (pointer: fine) {
+  .btn-custom:hover:not(:disabled) {
+    background: var(--btn-color);
+    border-color: var(--btn-color);
+    color: #ffffff;
+    box-shadow: 0 4px 14px var(--btn-shadow);
+  }
 }
 
 /* ============================================
-   EFECTO HOVER (tu animación)
-   ============================================ */
-.btn-custom:hover:not(:disabled) {
-  background: #315cfd;
-  color: white;
-  font-size: 1.1em;
-  box-shadow: 0 4px 15px rgba(49, 92, 253, 0.4);
-}
-
-/* ============================================
-   TAMAÑOS
+   Tamaños
    ============================================ */
 .btn-sm {
-  width: 100px;
-  height: 36px;
-  font-size: 0.8em;
-  border-width: 2px;
-}
-.btn-sm:hover:not(:disabled) {
-  font-size: 0.95em;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
 }
 
 .btn-md {
-  width: 130px;
-  height: 45px;
-  font-size: 0.95em;
-}
-.btn-md:hover:not(:disabled) {
-  font-size: 1.1em;
+  min-height: 44px;
+  padding: 12px 20px;
+  font-size: 0.9375rem;
 }
 
 .btn-lg {
-  width: 170px;
-  height: 55px;
-  font-size: 1.1em;
-}
-.btn-lg:hover:not(:disabled) {
-  font-size: 1.3em;
+  min-height: 48px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  font-size: 1rem;
 }
 
 /* ============================================
-   VARIANTES DE COLOR
+   Variantes de color · paleta SIGAS
    ============================================ */
 .btn-primary {
-  border-color: #315cfd;
-  color: #315cfd;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #315cfd;
-  color: white;
+  --btn-color: #0ea5e9;
+  --btn-color-hover: #0284c7;
+  --btn-shadow: rgba(14, 165, 233, 0.3);
 }
 
 .btn-secondary {
-  border-color: #6b7280;
-  color: #6b7280;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #6b7280;
-  color: white;
+  --btn-color: #6b7280;
+  --btn-color-hover: #4b5563;
+  --btn-shadow: rgba(107, 114, 128, 0.25);
 }
 
 .btn-danger {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #ef4444;
-  color: white;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  --btn-color: #ef4444;
+  --btn-color-hover: #dc2626;
+  --btn-shadow: rgba(239, 68, 68, 0.3);
 }
 
 .btn-success {
-  border-color: #10b981;
-  color: #10b981;
+  --btn-color: #10b981;
+  --btn-color-hover: #059669;
+  --btn-shadow: rgba(16, 185, 129, 0.3);
 }
-.btn-success:hover:not(:disabled) {
-  background: #10b981;
-  color: white;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+
+.btn-warning {
+  --btn-color: #f59e0b;
+  --btn-color-hover: #d97706;
+  --btn-shadow: rgba(245, 158, 11, 0.3);
 }
 
 .btn-outline {
+  --btn-color: #d1d5db;
+  --btn-color-hover: #9ca3af;
+  --btn-shadow: rgba(107, 114, 128, 0.18);
+
   border-color: #d1d5db;
+  background: #ffffff;
   color: #374151;
-  background: white;
 }
-.btn-outline:hover:not(:disabled) {
-  background: #f3f4f6;
-  color: #111827;
-  border-color: #9ca3af;
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-outline:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    color: #111827;
+    box-shadow: var(--btn-shadow);
+  }
 }
 
 .btn-ghost {
+  --btn-color: transparent;
+  --btn-color-hover: transparent;
+  --btn-shadow: transparent;
+
   border-color: transparent;
-  color: #374151;
   background: transparent;
+  color: #374151;
 }
-.btn-ghost:hover:not(:disabled) {
-  background: #f3f4f6;
-  color: #111827;
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-ghost:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: transparent;
+    color: #111827;
+    box-shadow: none;
+  }
 }
 
 /* ============================================
-   ESTADOS
+   Estados
    ============================================ */
 .btn-custom:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.btn-custom:active:not(:disabled) {
-  transform: scale(0.97);
+  box-shadow: none;
+  transform: none;
 }
 
 .btn-loading {
   cursor: wait;
 }
 
-/* ============================================
-   SPINNER
-   ============================================ */
 .btn-spinner {
+  flex-shrink: 0;
   width: 1em;
   height: 1em;
-  animation: spin 1s linear infinite;
+  animation: btn-spin 1s linear infinite;
 }
 
-@keyframes spin {
+@keyframes btn-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Tablet
+   ============================================ */
+@media (min-width: 640px) {
+  .btn-custom {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+
+  .btn-md {
+    min-height: 40px;
+    padding: 10px 18px;
+  }
+
+  .btn-lg {
+    min-height: 46px;
+    padding: 12px 22px;
+  }
+}
+
+/* ============================================
+   Desktop
+   ============================================ */
+@media (min-width: 1024px) {
+  .btn-custom {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+  }
+
+  .btn-sm {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+  }
+
+  .btn-md {
+    min-height: 36px;
+    padding: 8px 16px;
+  }
+
+  .btn-lg {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+  }
 }
 </style>

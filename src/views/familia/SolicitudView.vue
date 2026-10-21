@@ -1,34 +1,35 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto">
-    <h2 class="text-2xl font-bold mb-2 text-gray-800">Solicitar Gas</h2>
-    <p class="text-sm text-gray-500 mb-6">Módulo de Familia</p>
+  <div class="page request-page">
+    <div class="page-heading">
+      <h2 class="page-title">Solicitar Gas</h2>
+      <p class="page-subtitle">Módulo de Familia</p>
+    </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      
+    <div class="request-card">
       <!-- Mensaje de carga mientras se consulta la información -->
-      <div v-if="!datosCargados" class="py-8 text-center text-gray-500">
+      <div v-if="!datosCargados" class="loading-box">
         Cargando tu información personal y del ciclo de distribución...
       </div>
 
       <!-- CASO 1: No hay un ciclo de distribución activo habilitado por el Admin -->
-      <div 
-        v-else-if="!cicloActivo" 
-        class="p-6 text-center rounded-lg bg-amber-50 border border-amber-200 text-amber-800"
+      <div
+        v-else-if="!cicloActivo"
+        class="notice notice--warning"
       >
-        <p class="font-medium text-lg mb-1">Jornada no disponible</p>
-        <p class="text-sm">En este momento no hay un ciclo de distribución activo para tu comunidad o sector. Por favor, espera a que la administración habilite una nueva jornada.</p>
+        <p class="notice__title">Jornada no disponible</p>
+        <p class="notice__text">En este momento no hay un ciclo de distribución activo para tu comunidad o sector. Por favor, espera a que la administración habilite una nueva jornada.</p>
       </div>
 
       <!-- CASO 2: La familia ya realizó su solicitud en el ciclo actual (Muestra estatus real) -->
-      <div 
-        v-else-if="pedidoExistente" 
-        class="p-6 text-center rounded-lg space-y-2"
+      <div
+        v-else-if="pedidoExistente"
+        class="status-panel"
         :class="estatusBannerClass"
       >
-        <p class="font-bold text-lg">{{ tituloEstatus }}</p>
-        <p class="text-sm max-w-xl mx-auto">{{ mensajeEstatus }}</p>
+        <p class="status-panel__title">{{ tituloEstatus }}</p>
+        <p class="status-panel__message">{{ mensajeEstatus }}</p>
 
-        <div class="mt-4 pt-3 border-t border-gray-200/50 text-xs opacity-80 space-y-1">
+        <div class="status-panel__detail">
           <p><strong>Jornada:</strong> {{ cicloActivo.nombre_ciclo }}</p>
           <p><strong>Detalle de solicitud:</strong> Bombona {{ pedidoExistente.tipo_bombona }} ({{ pedidoExistente.pico }})</p>
         </div>
@@ -36,7 +37,7 @@
 
       <!-- CASO 3: Hay ciclo activo y la familia aún no ha realizado pedido -->
       <div v-else>
-        <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg">
+        <div class="active-cycle">
           Ciclo de entrega activo: <strong>{{ cicloActivo.nombre_ciclo }}</strong>
         </div>
 
@@ -53,17 +54,17 @@
           @selection-change="onSelectionUpdate"
         />
 
-        <div class="mt-4 max-w-md">
-          <BaseInput 
-            v-model="observaciones" 
-            label="Observaciones" 
+        <div class="field-narrow">
+          <BaseInput
+            v-model="observaciones"
+            label="Observaciones"
             placeholder="Opcional"
           />
         </div>
 
-        <div class="mt-6 flex justify-end">
-          <BaseButton 
-            @click="submit" 
+        <div class="form-actions">
+          <BaseButton
+            @click="submit"
             variant="success"
             :disabled="!selectionComplete || enviando"
             size="md"
@@ -74,11 +75,11 @@
       </div>
 
       <!-- Notificaciones de éxito y error -->
-      <div v-if="success" class="mt-4 p-4 bg-green-100 text-green-700 rounded-lg border border-green-300">
+      <div v-if="success" class="form-message form-message--success">
         {{ success }}
       </div>
 
-      <div v-if="error" class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
+      <div v-if="error" class="form-message form-message--error">
         {{ error }}
       </div>
     </div>
@@ -199,7 +200,7 @@ async function cargarEstadoFormulario() {
       if (familiaData && !dbError) {
         initialFamiliaId.value = familiaData.id
         initialCalleId.value = familiaData.id_calle
-        
+
         selection.value.familiaId = familiaData.id
         selection.value.calleId = familiaData.id_calle
 
@@ -307,43 +308,125 @@ async function submit() {
   }
 }
 </script>
-/* ==========================================================================
-   DOCUMENTACIÓN: MÓDULO DE SOLICITUD DE GAS (VUE 3 + SUPABASE)
-   ========================================================================== */
 
-/* 
-1. ESTADO DE ESPERA (v-if="datosCargados")
-Ocultamos el formulario visualmente usando v-if="datosCargados" y mostramos 
-un mensaje de "Cargando". Esto evita el error de renderizado donde las casillas 
-se dibujan vacías por no tener la respuesta de Supabase a tiempo.
-*/
+<style scoped>
+.request-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 960px;
+}
 
-/* 
-2. PREPARACIÓN INICIAL (onMounted)
-Se ejecuta apenas abre la pantalla y hace 3 tareas en cadena:
-- Descarga TODAS las calles y familias (fetchFamilias).
-- Valida quién está conectado: supabase.auth.getUser().
-- Busca el ID de familia y calle de ese usuario. Al terminar, activa 
-  datosCargados = true para que Vue dibuje el formulario de golpe.
-*/
+.request-card {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
 
-/* 
-3. CRUCE DE DATOS (CascadingSelector)
-El selector recibe las listas completas y los IDs predeterminados del usuario. 
-Internamente busca esos IDs, extrae los nombres y los inyecta en las casillas. 
-Los atributos "lock-calle" y "lock-familia" impiden que el menú se despliegue.
-*/
+.loading-box {
+  padding: 32px 16px;
+  color: var(--color-muted);
+  text-align: center;
+}
 
-/* 
-4. VALIDACIÓN EN TIEMPO REAL (onSelectionUpdate)
-Mientras el usuario elige la bombona y el pico, esta función actualiza el objeto 
-"selection". El botón verde de "Registrar" solo se enciende cuando esta función 
-confirma que ya se llenaron los campos obligatorios.
-*/
+.active-cycle {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 11px;
+  color: #166534;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
 
-/* 
-5. INSERCIÓN SEGURA (submit)
-Envía el pedido a la base de datos. Como medida de seguridad, ignora lo que diga 
-el selector en pantalla (evitando hackeos del HTML) y usa "initialFamiliaId.value", 
-que es el ID validado en secreto en el paso 2. Es imposible pedir por otro vecino.
-*/
+.notice {
+  padding: 18px 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.notice--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.notice__title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.notice__text {
+  margin-top: 4px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.status-panel {
+  padding: 18px 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.status-panel__title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.status-panel__message {
+  max-width: 560px;
+  margin: 6px auto 0;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.status-panel__detail {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  opacity: 0.85;
+}
+
+.field-narrow {
+  width: 100%;
+  max-width: 440px;
+  margin-top: 16px;
+}
+
+@media (min-width: 640px) {
+  .request-page {
+    gap: 24px;
+  }
+
+  .request-card {
+    padding: 24px;
+  }
+
+  .active-cycle {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+  }
+
+  .notice,
+  .status-panel {
+    padding: 22px 20px;
+  }
+
+  .field-narrow {
+    margin-top: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .request-card {
+    padding: 28px;
+  }
+}
+</style>
