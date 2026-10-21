@@ -1,4 +1,4 @@
-<<template>
+<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -48,7 +48,7 @@
       </template>
     </CrudDataTable>
 
-    <!-- Modal Modal para Crear Nuevo Ciclo -->
+    <!-- Modal para Crear Nuevo Ciclo -->
     <Teleport to="body">
       <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-gray-700/30" @click="showForm = false" />
@@ -122,12 +122,11 @@ const rows = computed(() => {
 const showForm = ref(false)
 const form = reactive({ nombre: '', id_calle: null })
 
-// 1. Cargar ciclos (con la relación de calles) y catálogo de calles de Supabase
+// 1. Cargar ciclos y lista de calles de Supabase
 async function fetchDatos() {
   cargando.value = true
   errorMsg.value = ''
 
-  // Cargar lista de calles activas
   const { data: callesData } = await supabase
     .from('calles')
     .select('id_calle, nombre')
@@ -136,7 +135,6 @@ async function fetchDatos() {
   
   listaCalles.value = callesData || []
 
-  // Cargar ciclos con el JOIN hacia la tabla calles
   const { data: ciclosData, error } = await supabase
     .from('ciclos_distribucion')
     .select('*, calles(id_calle, nombre)')
@@ -161,11 +159,10 @@ function openCreate() {
   showForm.value = true
 }
 
-// 2. Guardar nuevo ciclo con la calle seleccionada
+// 2. Guardar nuevo ciclo
 async function save() {
   if (!form.nombre) return
 
-  // Si eligió "Todas las calles" y no tienes DROP NOT NULL, le asignamos la primera calle por defecto
   const calleAEnviar = form.id_calle || (listaCalles.value.length > 0 ? listaCalles.value[0].id_calle : 1)
 
   guardando.value = true
@@ -176,14 +173,19 @@ async function save() {
     .insert([
       {
         nombre_ciclo: form.nombre,
-        id_calle: calleAEnviar, // Envía el id_calle válido
+        id_calle: calleAEnviar,
         estado: 'activo',
         fecha_inicio: new Date().toISOString()
       }
     ])
 
   if (error) {
-    alert('Error al guardar el ciclo: ' + error.message)
+    // Capturar intento de ciclo duplicado bloqueado por el índice único
+    if (error.code === '23505' || error.message.includes('idx_unico_ciclo_activo')) {
+      alert('⚠️ No se puede activar este ciclo. Ya existe un ciclo de distribución en estado "activo". Debes completar o cerrar el ciclo actual antes de iniciar uno nuevo.')
+    } else {
+      alert('Error al guardar el ciclo: ' + error.message)
+    }
   } else {
     showForm.value = false
     await fetchDatos()
@@ -191,7 +193,8 @@ async function save() {
 
   guardando.value = false
 }
-// 3. Iniciar un ciclo
+
+// 3. Iniciar un ciclo en estado planificado/creado
 async function startCiclo(row) {
   const { error } = await supabase
     .from('ciclos_distribucion')
@@ -199,7 +202,11 @@ async function startCiclo(row) {
     .eq('id_ciclo', row.id_ciclo)
 
   if (error) {
-    alert('Error al activar ciclo: ' + error.message)
+    if (error.code === '23505' || error.message.includes('idx_unico_ciclo_activo')) {
+      alert('⚠️ No se puede activar este ciclo. Ya existe un ciclo activo en este momento. Completa el ciclo actual antes de iniciar otro.')
+    } else {
+      alert('Error al activar ciclo: ' + error.message)
+    }
   } else {
     await fetchDatos()
   }
