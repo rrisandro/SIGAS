@@ -360,19 +360,70 @@ function obtenerNombreCalle(idCalle) {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
+/* CONTENEDOR PRINCIPAL DEL DASHBOARD */
 .admin-dashboard {
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: #0f172a;
-  padding: 2rem;
+  padding: 2.2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
-  background-color: #f8fafc !important; /* Fondo gris claro estilo SaaS */
+  gap: 1.8rem;
+  background-color: #f8fafc !important;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
-/* BANNER PRINCIPAL CON ESTILO CORPORATIVO CLARO */
+/* REGLAS GLOBALES PARA LA BARRA LATERAL (SIDEBAR) AMPLIADA Y CON MÁS INTERACCIÓN */
+:global(.sidebar),
+:global(.admin-sidebar),
+:global(aside) {
+  width: 280px !important;
+  min-width: 280px !important;
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  padding: 2rem 1.25rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 100vh !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.03) !important;
+  box-sizing: border-box !important;
+}
+
+:global(.sidebar nav a),
+:global(.sidebar-menu a),
+:global(.menu-item) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 0.9rem 1.2rem !important;
+  border-radius: 12px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  font-size: 0.95rem !important;
+  text-decoration: none !important;
+  transition: all 0.25s ease !important;
+  margin-bottom: 0.45rem !important;
+}
+
+:global(.sidebar nav a:hover),
+:global(.sidebar-menu a:hover),
+:global(.menu-item:hover) {
+  background-color: #f1f5f9 !important;
+  color: #0072CE !important;
+  transform: translateX(4px) !important;
+}
+
+:global(.sidebar nav a.router-link-active),
+:global(.sidebar nav a.active),
+:global(.menu-item.active) {
+  background: linear-gradient(135deg, #0072CE 0%, #227cc5 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 114, 206, 0.35) !important;
+  font-weight: 600 !important;
+}
+
+/* BANNER HEADER CORPORATIVO CLARO */
 .header-banner {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -476,7 +527,7 @@ function obtenerNombreCalle(idCalle) {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
 }
 
@@ -486,8 +537,8 @@ function obtenerNombreCalle(idCalle) {
 .metric-card.border-green { border-left: 4px solid #10b981; }
 
 .metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -5px rgba(0, 114, 206, 0.12);
 }
 
 .card-icon {
