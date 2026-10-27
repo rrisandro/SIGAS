@@ -233,10 +233,20 @@ onMounted(async () => {
     listaCalles.value = data
   }
 
-  const hash = window.location.hash
-  if (hash && hash.includes('type=recovery')) {
+  // Comprobación inicial del hash en la URL
+  const currentHash = window.location.hash
+  if (currentHash && (currentHash.includes('type=recovery') || currentHash.includes('access_token'))) {
     isUpdatePasswordMode.value = true
   }
+
+  // Escuchador dinámico de Supabase para capturar el evento de recuperación de contraseña de forma segura
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      isUpdatePasswordMode.value = true
+      error.value = ''
+      notice.value = 'Ingresa tu nueva contraseña a continuación.'
+    }
+  })
 })
 
 function abrirModalRegistro() {
@@ -312,7 +322,7 @@ async function handlePasswordResetRequest() {
   loading.value = true
 
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail.value.trim(), {
-    redirectTo: window.location.origin + '/login',
+    redirectTo: `${window.location.origin}/login`,
   })
 
   loading.value = false
@@ -345,6 +355,7 @@ async function handleUpdatePassword() {
       isResetMode.value = false
       newPassword.value = ''
       notice.value = ''
+      window.location.hash = ''
     }, 2500)
   }
 }
@@ -470,10 +481,17 @@ async function handleRegister() {
   border-radius: 26px;
   box-shadow: 0px 12px 40px rgba(56, 152, 216, 0.8), 0px 0px 25px rgba(67, 162, 218, 0.2);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+  max-width: 420px;
+  width: 100%;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0px 18px 45px rgba(0, 0, 0, 0.8), 0px 0px 35px rgba(0, 114, 206, 0.4);
 }
 
 .form {
-  width: 420px;
+  width: 100%;
   padding: 2.8em 2.4em;
   width: 100%;
   max-width: 420px;
@@ -681,7 +699,7 @@ async function handleRegister() {
   text-decoration: underline;
 }
 
-/* MODAL DE REGISTRO */
+/* MODAL DE REGISTRO RESPONSIVO */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -691,17 +709,15 @@ async function handleRegister() {
   justify-content: center;
   align-items: center;
   backdrop-filter: blur(4px);
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 .modal-card {
   background: #0f1724;
   padding: 2em 1.5em;
   border-radius: 20px;
-  width: 100%;
-  max-width: 420px;
-  /* Margen lateral en pantallas estrechas */
-  margin-left: 0.75rem;
-  margin-right: 0.75rem;
+  width: 420px;
   border: 1px solid #0072CE;
   box-shadow: 0 10px 30px rgba(0,0,0,0.8);
   box-sizing: border-box;
@@ -718,179 +734,5 @@ async function handleRegister() {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-/* ==========================================================================
-   RESPONSIVE · mobile-first
-   ========================================================================== */
-.card {
-  width: min(100%, 420px);
-}
-
-.form {
-  width: 100%;
-  max-width: none;
-  margin-left: 0;
-  margin-right: 0;
-  padding: 1.6em 1.1em;
-}
-
-.brand-logo {
-  width: 96px;
-  height: 96px;
-}
-
-#heading {
-  font-size: 1.45em;
-}
-
-.field {
-  min-height: 50px;
-  padding: 0.7em 0.9em;
-}
-
-.input-field,
-.select-field {
-  min-height: 32px;
-  font-size: 16px;
-}
-
-.btn-group {
-  flex-direction: column;
-  gap: 10px;
-}
-
-.button1,
-.button2 {
-  min-height: 48px;
-  padding: 0.8em 1em;
-}
-
-.button3 {
-  min-height: 44px;
-  padding: 6px;
-  font-size: 0.82em;
-}
-
-.modal-overlay {
-  align-items: flex-end;
-  padding: 0;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: none;
-  max-height: 88dvh;
-  margin: 0;
-  padding: 12px 16px calc(18px + var(--safe-bottom));
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 22px 22px 0 0;
-  animation: loginSheetUp 0.22s ease-out;
-}
-
-.modal-sheet-handle {
-  display: block;
-  width: 40px;
-  height: 4px;
-  margin: 0 auto 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.modal-card h3 {
-  font-size: 1.05rem;
-}
-
-@keyframes loginSheetUp {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@media (min-width: 480px) {
-  .brand-logo {
-    width: 108px;
-    height: 108px;
-  }
-
-  .form {
-    padding: 1.8em 1.4em;
-  }
-}
-
-@media (min-width: 640px) {
-  .login-page {
-    padding: 1.5rem;
-  }
-
-  .form {
-    padding: 2em 1.5em;
-  }
-
-  .brand-logo {
-    width: 125px;
-    height: 125px;
-  }
-
-  #heading {
-    font-size: 1.65em;
-  }
-
-  .field {
-    min-height: 0;
-    padding: 0.85em 1.1em;
-  }
-
-  .input-field,
-  .select-field {
-    min-height: 24px;
-    font-size: 15px;
-  }
-
-  .btn-group {
-    flex-direction: row;
-    gap: 12px;
-  }
-
-  .button1,
-  .button2 {
-    min-height: 44px;
-  }
-
-  .button3 {
-    min-height: 40px;
-    font-size: 0.9em;
-  }
-
-  .modal-overlay {
-    align-items: center;
-    padding: 1rem;
-  }
-
-  .modal-card {
-    width: 100%;
-    max-width: 420px;
-    max-height: 88vh;
-    margin: 0;
-    padding: 2em 1.5em;
-    border-radius: 20px;
-    animation: scaleIn 0.2s ease-out;
-  }
-
-  .modal-sheet-handle {
-    display: none;
-  }
-}
-
-@media (min-width: 1024px) {
-  .input-field,
-  .select-field {
-    font-size: 14px;
-  }
-
-  .button1,
-  .button2 {
-    min-height: 42px;
-  }
 }
 </style>
