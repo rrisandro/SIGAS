@@ -23,9 +23,9 @@
           </thead>
           <tbody>
             <tr v-for="calle in calles" :key="calle.id_calle" class="table-row">
-              <td class="id-cell">#{{ calle.id_calle }}</td>
-              <td class="name-cell">{{ calle.nombre }}</td>
-              <td>
+              <td class="id-cell" data-label="ID">#{{ calle.id_calle }}</td>
+              <td class="name-cell" data-label="Nombre de la calle">{{ calle.nombre }}</td>
+              <td data-label="Estado">
                 <span class="status-badge" :class="{ active: calle.activo }">
                   <span class="status-dot"></span>
                   {{ calle.activo ? 'Activa' : 'Inactiva' }}
@@ -38,8 +38,9 @@
     </div>
 
     <!-- MODAL NUEVA CALLE -->
-    <div v-if="mostrarModal" class="modal-overlay">
-      <div class="modal-card">
+    <div v-if="mostrarModal" class="modal-overlay" @click.self="mostrarModal = false">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Registrar nueva calle">
+        <span class="modal-sheet-handle" aria-hidden="true"></span>
         <h3>Registrar Nueva Calle</h3>
         <form @submit.prevent="guardarCalle" class="modal-form">
           <div class="field">
@@ -94,12 +95,12 @@ onMounted(cargarCalles)
 .admin-page { 
   font-family: 'Plus Jakarta Sans', sans-serif; 
   color: #1e293b; 
-  padding: 2rem; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 1.75rem; 
-  background-color: #f8fafc; 
-  min-height: 100vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: transparent;
+  min-height: 0;
 }
 
 .header-banner { 
@@ -355,5 +356,175 @@ onMounted(cargarCalles)
 .button2:hover {
   background: #f1f5f9;
   color: #0f172a;
+}
+
+/* ==========================================================================
+   RESPONSIVE · mobile-first
+   ========================================================================== */
+.header-banner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 18px 16px;
+  border-radius: 16px;
+}
+
+.header-banner h1 {
+  font-size: 1.4rem;
+  line-height: 1.25;
+}
+
+.header-banner p {
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.badge {
+  font-size: 0.68rem;
+}
+
+.action-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}
+
+.table-card {
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.modal-overlay {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: none;
+  max-height: 85dvh;
+  padding: 12px 16px calc(16px + var(--safe-bottom));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 20px 20px 0 0;
+  animation: sheetUp 0.22s ease-out;
+}
+
+.modal-sheet-handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.modal-card h3 {
+  margin-bottom: 16px;
+  font-size: 1.08rem;
+}
+
+.input-field {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.btn-group {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.button1,
+.button2 {
+  min-height: 44px;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (min-width: 640px) {
+  .admin-page {
+    gap: 1.5rem;
+  }
+
+  .header-banner {
+    flex-direction: row;
+    align-items: center;
+    padding: 1.6rem;
+  }
+
+  .header-banner h1 {
+    font-size: 1.6rem;
+  }
+
+  .action-btn {
+    width: auto;
+    min-height: 40px;
+  }
+
+  .table-card {
+    padding: 1.25rem;
+  }
+
+  .modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-card {
+    width: 400px;
+    max-width: 100%;
+    max-height: 85vh;
+    padding: 1.75rem;
+    border-radius: 18px;
+    animation: none;
+  }
+
+  .modal-sheet-handle {
+    display: none;
+  }
+
+  .input-field {
+    min-height: 40px;
+    font-size: 15px;
+  }
+
+  .btn-group {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .button1,
+  .button2 {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-page {
+    gap: 1.75rem;
+  }
+
+  .header-banner {
+    padding: 2.2rem;
+    border-radius: 20px;
+  }
+
+  .header-banner h1 {
+    font-size: 1.85rem;
+  }
+
+  .table-card {
+    padding: 1.6rem;
+    border-radius: 20px;
+  }
+
+  .input-field {
+    min-height: 38px;
+    font-size: 14px;
+  }
 }
 </style>

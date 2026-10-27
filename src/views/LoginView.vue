@@ -117,8 +117,9 @@
     </div>
 
     <!-- MODAL DE REGISTRO DE FAMILIA -->
-    <div v-if="mostrarModal" class="modal-overlay">
-      <div class="modal-card">
+    <div v-if="mostrarModal" class="modal-overlay" @click.self="mostrarModal = false">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Registro de familia">
+        <span class="modal-sheet-handle" aria-hidden="true"></span>
         <h3>Registro de Familia</h3>
         <form @submit.prevent="handleRegister" class="modal-form">
           
@@ -426,8 +427,11 @@ async function handleRegister() {
 
 .login-page {
   margin: 0;
-  padding: 1rem;
+  /* Safe areas para iPhone (Dynamic Island / Home Indicator) */
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + env(safe-area-inset-bottom, 0px)) 1rem;
+  /* 100dvh = dynamic viewport height, soluciona el bug de 100vh en iOS Safari */
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -435,19 +439,27 @@ async function handleRegister() {
   align-items: center;
   background-repeat: no-repeat;
   background-position: center 92%;
+  background-position: center center;
   background-size: cover;
-  background-attachment: fixed;
   font-family: 'Poppins', sans-serif;
   color: #ffffff;
   position: relative;
+  box-sizing: border-box;
 }
 
 .login-page::before {
   content: '';
   position: absolute;
-  inset: 0;
+  /* Cubrir toda el área incluyendo el área scrolleada */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.45);
   z-index: 0;
+  pointer-events: none;
 }
 
 .card {
@@ -463,6 +475,13 @@ async function handleRegister() {
 .form {
   width: 420px;
   padding: 2.8em 2.4em;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 2em 1.5em;
+  /* Margen lateral en pantallas estrechas para que no se sienta pegado */
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
   background-color: rgba(15, 23, 36, 0.80);
   color: #fff;
   backdrop-filter: blur(16px);
@@ -472,6 +491,7 @@ async function handleRegister() {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-sizing: border-box;
 }
 
 .logo-container {
@@ -675,11 +695,16 @@ async function handleRegister() {
 
 .modal-card {
   background: #0f1724;
-  padding: 2em;
+  padding: 2em 1.5em;
   border-radius: 20px;
-  width: 420px;
+  width: 100%;
+  max-width: 420px;
+  /* Margen lateral en pantallas estrechas */
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
   border: 1px solid #0072CE;
   box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  box-sizing: border-box;
 }
 
 .modal-card h3 {
@@ -693,5 +718,179 @@ async function handleRegister() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ==========================================================================
+   RESPONSIVE · mobile-first
+   ========================================================================== */
+.card {
+  width: min(100%, 420px);
+}
+
+.form {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 1.6em 1.1em;
+}
+
+.brand-logo {
+  width: 96px;
+  height: 96px;
+}
+
+#heading {
+  font-size: 1.45em;
+}
+
+.field {
+  min-height: 50px;
+  padding: 0.7em 0.9em;
+}
+
+.input-field,
+.select-field {
+  min-height: 32px;
+  font-size: 16px;
+}
+
+.btn-group {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.button1,
+.button2 {
+  min-height: 48px;
+  padding: 0.8em 1em;
+}
+
+.button3 {
+  min-height: 44px;
+  padding: 6px;
+  font-size: 0.82em;
+}
+
+.modal-overlay {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: none;
+  max-height: 88dvh;
+  margin: 0;
+  padding: 12px 16px calc(18px + var(--safe-bottom));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 22px 22px 0 0;
+  animation: loginSheetUp 0.22s ease-out;
+}
+
+.modal-sheet-handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.modal-card h3 {
+  font-size: 1.05rem;
+}
+
+@keyframes loginSheetUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (min-width: 480px) {
+  .brand-logo {
+    width: 108px;
+    height: 108px;
+  }
+
+  .form {
+    padding: 1.8em 1.4em;
+  }
+}
+
+@media (min-width: 640px) {
+  .login-page {
+    padding: 1.5rem;
+  }
+
+  .form {
+    padding: 2em 1.5em;
+  }
+
+  .brand-logo {
+    width: 125px;
+    height: 125px;
+  }
+
+  #heading {
+    font-size: 1.65em;
+  }
+
+  .field {
+    min-height: 0;
+    padding: 0.85em 1.1em;
+  }
+
+  .input-field,
+  .select-field {
+    min-height: 24px;
+    font-size: 15px;
+  }
+
+  .btn-group {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .button1,
+  .button2 {
+    min-height: 44px;
+  }
+
+  .button3 {
+    min-height: 40px;
+    font-size: 0.9em;
+  }
+
+  .modal-overlay {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 420px;
+    max-height: 88vh;
+    margin: 0;
+    padding: 2em 1.5em;
+    border-radius: 20px;
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  .modal-sheet-handle {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .input-field,
+  .select-field {
+    font-size: 14px;
+  }
+
+  .button1,
+  .button2 {
+    min-height: 42px;
+  }
 }
 </style>

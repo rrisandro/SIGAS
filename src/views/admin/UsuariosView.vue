@@ -55,20 +55,20 @@
           </thead>
           <tbody>
             <tr v-for="usuario in usuariosFiltrados" :key="usuario.id" class="table-row">
-              <td class="id-cell">V-{{ usuario.id }}</td>
-              <td class="name-cell">
+              <td class="id-cell" data-label="Cédula (ID)">V-{{ usuario.id }}</td>
+              <td class="name-cell" data-label="Nombre completo">
                 <div class="avatar">{{ usuario.nombre_familia ? usuario.nombre_familia.charAt(0).toUpperCase() : 'U' }}</div>
                 <span class="family-name">{{ usuario.nombre_familia || 'Sin nombre' }}</span>
               </td>
-              <td>
+              <td data-label="Calle / Sector">
                 <span class="badge-calle">{{ obtenerNombreCalle(usuario.id_calle) }}</span>
               </td>
-              <td>
+              <td data-label="Rol / Cargo">
                 <span class="role-select" :class="'role-' + usuario.id_cargo">
                   {{ obtenerNombreCargo(usuario.id_cargo) }}
                 </span>
               </td>
-              <td>
+              <td data-label="Estado">
                 <span class="status-indicator" :class="{ active: usuario.activo }">
                   <span class="status-dot"></span>
                   {{ usuario.activo ? 'Activo' : 'Inactivo' }}
@@ -144,12 +144,12 @@ const usuariosFiltrados = computed(() => {
 .admin-page { 
   font-family: 'Plus Jakarta Sans', sans-serif; 
   color: #0f172a; 
-  padding: 2.2rem; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 1.75rem; 
-  background-color: #f8fafc !important; 
-  min-height: 100vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: transparent !important;
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -451,5 +451,85 @@ const usuariosFiltrados = computed(() => {
   border-radius: 50%; 
   animation: spin 1s infinite linear; 
   margin: 0 auto 1rem auto; 
+}
+
+@media (max-width: 639.98px) {
+  .header-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 18px 16px;
+    border-left-width: 4px;
+  }
+
+  .header-banner h1 {
+    font-size: 1.35rem;
+  }
+
+  .action-btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .table-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 1rem;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .search-box input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .name-cell {
+    gap: 8px;
+  }
+
+  .role-select {
+    white-space: normal;
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-page {
+    gap: 1.5rem;
+  }
+
+  .header-banner {
+    padding: 1.7rem 1.9rem;
+  }
+
+  .table-card {
+    padding: 1.4rem;
+  }
+
+  .action-btn {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-page {
+    gap: 1.75rem;
+  }
+
+  .header-banner h1 {
+    font-size: 1.8rem;
+  }
+
+  .table-card {
+    padding: 1.6rem;
+  }
 }
 </style>

@@ -1,8 +1,8 @@
 <template>
-  <div class="space-y-6">
-    <div>
-      <h2 class="text-xl font-medium text-gray-700">Bandeja de Solicitudes</h2>
-      <p class="text-sm text-gray-500">Acepta o rechaza solicitudes de tu calle</p>
+  <div class="page space-y-6">
+    <div class="page-heading">
+      <h2 class="page-title">Bandeja de Solicitudes</h2>
+      <p class="page-subtitle">Acepta o rechaza solicitudes de tu calle</p>
     </div>
 
     <!-- Indicador de carga -->

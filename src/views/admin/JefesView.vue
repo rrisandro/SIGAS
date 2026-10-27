@@ -39,15 +39,15 @@
           </thead>
           <tbody>
             <tr v-for="jefe in jefes" :key="jefe.id" class="table-row">
-              <td class="id-cell">V-{{ jefe.id }}</td>
-              <td class="name-cell">
+              <td class="id-cell" data-label="Cédula">V-{{ jefe.id }}</td>
+              <td class="name-cell" data-label="Nombre completo">
                 <div class="avatar">{{ jefe.nombre_familia ? jefe.nombre_familia.charAt(0).toUpperCase() : 'J' }}</div>
                 <span class="family-name">{{ jefe.nombre_familia || 'Sin nombre' }}</span>
               </td>
-              <td>
+              <td data-label="Calle asignada">
                 <span class="badge-calle">{{ obtenerNombreCalle(jefe.id_calle) }}</span>
               </td>
-              <td>
+              <td data-label="Cargo">
                 <span class="role-badge">Jefe de Calle</span>
               </td>
             </tr>
@@ -102,12 +102,12 @@ onMounted(cargarJefes)
 .admin-page { 
   font-family: 'Plus Jakarta Sans', sans-serif; 
   color: #0f172a; 
-  padding: 2.2rem; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 1.75rem; 
-  background-color: #f8fafc; 
-  min-height: 100vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: transparent;
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -302,5 +302,66 @@ onMounted(cargarJefes)
 
 @keyframes spin { 
   100% { transform: rotate(360deg); } 
+}
+
+@media (max-width: 639.98px) {
+  .header-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 18px 16px;
+    border-left-width: 4px;
+  }
+
+  .header-banner h1 {
+    font-size: 1.35rem;
+  }
+
+  .action-btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .table-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .name-cell {
+    gap: 8px;
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-page {
+    gap: 1.5rem;
+  }
+
+  .header-banner {
+    padding: 1.7rem 1.9rem;
+  }
+
+  .table-card {
+    padding: 1.4rem;
+  }
+
+  .action-btn {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-page {
+    gap: 1.75rem;
+  }
+
+  .header-banner h1 {
+    font-size: 1.8rem;
+  }
+
+  .table-card {
+    padding: 1.6rem;
+  }
 }
 </style>

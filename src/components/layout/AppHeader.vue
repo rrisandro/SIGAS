@@ -1,27 +1,44 @@
 <template>
-  <header class="top-navbar">
-    <!-- NAVEGACIÓN Y TÍTULO DE LA SECCIÓN ACTIVA -->
-    <div class="header-left">
-      <div class="breadcrumb">
-        <span class="system-tag">SIGAS System</span>
-        <span class="divider">/</span>
-        <span class="current-page">{{ tituloVista }}</span>
-      </div>
-      <h1 class="page-title">{{ tituloVista }}</h1>
+  <header class="app-header">
+    <button
+      type="button"
+      class="header-icon-btn menu-btn"
+      aria-label="Abrir menú de navegación"
+      aria-controls="app-sidebar"
+      @click="$emit('toggle-sidebar')"
+    >
+      <Menu :size="22" />
+    </button>
+
+    <RouterLink to="/" class="app-header__brand" aria-label="SIGAS, ir al panel">
+      <span class="brand-mark">
+        <Flame :size="18" />
+      </span>
+      <span class="brand-text">SIGAS</span>
+    </RouterLink>
+
+    <div class="app-header__page">
+      <p class="app-header__title">{{ title }}</p>
+      <p class="app-header__subtitle">{{ subtitle }}</p>
     </div>
 
-    <!-- ÁREA DE USUARIO Y ACCIONES -->
-    <div class="header-right">
+    <div class="app-header__actions">
       <!-- CAMPANA DE NOTIFICACIONES CON AUDITORÍA REAL DE SUPABASE -->
       <div class="notifications-wrapper">
-        <button 
-          class="icon-btn" 
+        <button
+          type="button"
+          class="header-icon-btn notification-btn"
           :class="{ active: mostrarNotificaciones }"
+          aria-label="Historial de auditoría y cambios"
           title="Historial de Auditoría y Cambios"
+          :aria-expanded="mostrarNotificaciones"
           @click="toggleNotificaciones"
         >
-          <svg viewBox="0 0 24 24" class="icon">
-            <path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          <svg viewBox="0 0 24 24" class="notification-icon" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"
+            />
           </svg>
           <span v-if="notificacionesNoLeidas > 0" class="notification-badge">
             {{ notificacionesNoLeidas }}
@@ -35,8 +52,8 @@
               <h3>Auditoría de Cambios</h3>
               <p>Registro de actividad del sistema</p>
             </div>
-            <button class="btn-clear" @click="cargarAuditoriaReal">
-              🔄 Actualizar
+            <button type="button" class="btn-clear" @click="cargarAuditoriaReal">
+              Actualizar
             </button>
           </div>
 
@@ -46,22 +63,28 @@
             </div>
 
             <template v-else>
-              <div 
-                v-for="item in listaAuditoria" 
-                :key="item.id || item.id_auditoria" 
+              <div
+                v-for="item in listaAuditoria"
+                :key="item.id || item.id_auditoria"
                 class="notification-item"
                 :class="{ unread: !item.leida }"
                 @click="item.leida = true"
               >
                 <div class="notif-icon audit">
-                  <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v-2zm-3-5V3.5L18.5 9H13z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v-2zm-3-5V3.5L18.5 9H13z"
+                    />
+                  </svg>
                 </div>
                 <div class="notif-content">
                   <p class="notif-title">{{ item.accion || 'Acción Registrada' }}</p>
                   <p class="notif-desc">{{ item.descripcion || 'Sin detalles adicionales' }}</p>
                   <span class="notif-time">
-                    👤 <strong>{{ item.usuario || item.autor || 'Administrador' }}</strong> — 
-                    🕒 {{ item.fecha ? new Date(item.fecha).toLocaleString('es-VE') : 'Reciente' }}
+                    <strong>{{ item.usuario || item.autor || 'Administrador' }}</strong>
+                    <span aria-hidden="true"> · </span>
+                    {{ item.fecha ? new Date(item.fecha).toLocaleString('es-VE') : 'Reciente' }}
                   </span>
                 </div>
               </div>
@@ -74,36 +97,36 @@
         </div>
       </div>
 
-      <div class="header-divider"></div>
-
-      <!-- PERFIL DEL ADMINISTRADOR -->
-      <div class="user-profile">
-        <div class="avatar-container">
-          <div class="avatar-circle">
-            {{ currentUser?.nombre ? currentUser.nombre.charAt(0).toUpperCase() : 'J' }}
-          </div>
-          <span class="online-indicator"></span>
-        </div>
-        <div class="user-details">
-          <p class="user-name">{{ currentUser?.nombre || 'Jhonjairo Carusi' }}</p>
-          <span class="role-badge">{{ currentUser?.rol || 'Administrador' }}</span>
-        </div>
+      <div class="user-meta">
+        <p class="user-name">{{ currentUser?.nombre }}</p>
+        <p class="user-role">{{ currentUser?.rol }}</p>
       </div>
 
-      <!-- BOTÓN DE SALIR CORREGIDO -->
-      <button class="logout-btn" @click="cerrarSesion">
-        <svg viewBox="0 0 24 24" class="logout-icon"><path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-        <span>Salir</span>
+      <span class="user-avatar" aria-hidden="true">{{ userInitial }}</span>
+
+      <button
+        type="button"
+        class="header-icon-btn logout-btn"
+        aria-label="Cerrar sesión"
+        title="Cerrar sesión"
+        @click="handleLogout"
+      >
+        <LogOut :size="20" />
+        <span class="logout-label">Salir</span>
       </button>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Menu, LogOut, Flame } from '../icons.js'
 import { useAuth } from '../../composables/useAuth.js'
 import { supabase } from '../../composables/supabase.js'
+import { menuByRole } from '../../data/menu.js'
+
+defineEmits(['toggle-sidebar'])
 
 const route = useRoute()
 const router = useRouter()
@@ -113,8 +136,29 @@ const mostrarNotificaciones = ref(false)
 const loading = ref(false)
 const listaAuditoria = ref([])
 
+const title = computed(() => {
+  const rol = currentUser.value?.rol
+  const segment = route.path.split('/').filter(Boolean).pop()
+  const item = menuByRole[rol]?.find((m) => m.path === segment)
+  return item?.label || 'Panel'
+})
+
+const subtitle = computed(() => {
+  const map = {
+    admin: 'Administración del sistema',
+    jefe: 'Gestión de calle',
+    familia: 'Solicitudes de gas',
+  }
+  return map[currentUser.value?.rol] || ''
+})
+
+const userInitial = computed(() => {
+  const name = currentUser.value?.nombre?.trim()
+  return name ? name.charAt(0).toUpperCase() : 'U'
+})
+
 const notificacionesNoLeidas = computed(() => {
-  return listaAuditoria.value.filter(item => !item.leida).length
+  return listaAuditoria.value.filter((item) => !item.leida).length
 })
 
 function toggleNotificaciones() {
@@ -134,10 +178,9 @@ async function cargarAuditoriaReal() {
       .limit(6)
 
     if (!error && data) {
-      // Mapeamos los datos para asegurar que tengan la propiedad 'leida' (por defecto no leída)
-      listaAuditoria.value = data.map(item => ({
+      listaAuditoria.value = data.map((item) => ({
         ...item,
-        leida: false
+        leida: false,
       }))
     }
   } catch (e) {
@@ -147,210 +190,426 @@ async function cargarAuditoriaReal() {
   }
 }
 
-onMounted(() => {
-  cargarAuditoriaReal()
-})
-
-const tituloVista = computed(() => {
-  const path = route.path
-  if (path.includes('calles')) return 'Gestión de Calles'
-  if (path.includes('jefes')) return 'Jefes de Calle'
-  if (path.includes('familias')) return 'Directorio de Familias'
-  if (path.includes('usuarios')) return 'Usuarios del Sistema'
-  if (path.includes('logistica')) return 'Logística y Despacho'
-  if (path.includes('auditoria')) return 'Histórico de Auditoría'
-  return 'Panel de Control General'
-})
-
-async function cerrarSesion() {
+function handleLogout() {
   try {
-    if (typeof logout === 'function') {
-      await logout()
-    }
+    logout()
   } catch (e) {
     console.error('Error en logout:', e)
   } finally {
     localStorage.removeItem('user')
     localStorage.removeItem('supabase.auth.token')
+    mostrarNotificaciones.value = false
     router.push('/login')
   }
 }
+
+watch(
+  () => route.fullPath,
+  () => {
+    mostrarNotificaciones.value = false
+  }
+)
+
+onMounted(() => {
+  cargarAuditoriaReal()
+})
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
-.top-navbar {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  height: 80px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0 2.2rem;
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 80;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  gap: 8px;
+  height: var(--header-height);
+  padding: 0 10px 0 max(10px, var(--safe-left));
+  padding-right: max(10px, var(--safe-right));
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--color-border-light);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.header-left { display: flex; flex-direction: column; gap: 2px; }
-.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
-.system-tag { color: #0072CE; font-weight: 600; }
-.current-page { color: #64748b; }
-.page-title { margin: 0; font-size: 1.2rem; font-weight: 700; color: #0f172a; }
-
-.header-right { display: flex; align-items: center; gap: 1.2rem; }
-
-.notifications-wrapper { position: relative; }
-.icon-btn {
-  position: relative;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
+.header-icon-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
-.icon-btn:hover, .icon-btn.active { background: #eff6ff; color: #0072CE; border-color: #bfdbfe; }
-.icon-btn .icon { width: 20px; height: 20px; }
+
+.header-icon-btn:hover,
+.header-icon-btn.active {
+  background: var(--color-bg);
+  color: var(--color-heading);
+}
+
+.header-icon-btn:active {
+  background: var(--color-border-light);
+}
+
+.menu-btn {
+  margin-right: 2px;
+}
+
+.app-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+}
+
+.brand-text {
+  color: var(--color-primary-darker);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-header__page {
+  display: none;
+  min-width: 0;
+  padding-left: 4px;
+}
+
+.app-header__title {
+  overflow: hidden;
+  color: var(--color-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header__subtitle {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.notifications-wrapper {
+  position: relative;
+  display: flex;
+}
+
+.notification-btn {
+  position: relative;
+}
+
+.notification-icon {
+  width: 21px;
+  height: 21px;
+}
 
 .notification-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background-color: #0072CE;
-  color: #ffffff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 10px;
-  display: flex;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
   border: 2px solid #ffffff;
+  border-radius: 10px;
+  background: var(--color-danger);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .notifications-dropdown {
-  position: absolute;
-  right: 0;
-  top: 54px;
-  width: 350px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: calc(var(--header-height) + 6px);
+  left: max(8px, var(--safe-left));
+  right: max(8px, var(--safe-right));
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--header-height) - 16px);
   overflow: hidden;
-  z-index: 100;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px -18px rgba(15, 23, 42, 0.4);
 }
 
 .dropdown-header {
-  padding: 1rem 1.2rem;
-  border-bottom: 1px solid #f1f5f9;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
-.dropdown-header h3 { margin: 0; font-size: 0.95rem; font-weight: 700; color: #0f172a; }
-.dropdown-header p { margin: 0.1rem 0 0 0; font-size: 0.75rem; color: #64748b; }
-.btn-clear { background: none; border: none; color: #0072CE; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.dropdown-header h3 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
 
-.dropdown-body { max-height: 320px; overflow-y: auto; }
-.loading-notif { padding: 1.5rem; text-align: center; font-size: 0.8rem; color: #64748b; }
+.dropdown-header p {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.btn-clear {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--color-primary-darker);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-clear:hover {
+  background: var(--color-primary-soft);
+}
+
+.dropdown-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.loading-notif,
+.empty-notif {
+  padding: 28px 16px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
 
 .notification-item {
   display: flex;
   gap: 12px;
-  padding: 0.9rem 1.2rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-light);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background-color var(--transition-fast);
 }
-.notification-item:hover { background: #f8fafc; }
-.notification-item.unread { background: #f0f7ff; }
+
+.notification-item:last-child {
+  border-bottom: 0;
+}
+
+.notification-item:hover {
+  background: var(--color-bg);
+}
+
+.notification-item.unread {
+  background: var(--color-primary-soft);
+}
 
 .notif-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: #eff6ff;
-  color: #0072CE;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-darker);
 }
-.notif-icon svg { width: 16px; height: 16px; }
 
-.notif-content { flex-grow: 1; }
-.notif-title { margin: 0; font-size: 0.85rem; font-weight: 700; color: #0f172a; }
-.notif-desc { margin: 0.2rem 0 0 0; font-size: 0.78rem; color: #64748b; }
-.notif-time { display: block; margin-top: 0.4rem; font-size: 0.7rem; color: #64748b; }
+.notif-icon svg {
+  width: 17px;
+  height: 17px;
+}
 
-.empty-notif { padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.85rem; }
+.notif-content {
+  min-width: 0;
+}
 
-.header-divider { width: 1px; height: 32px; background-color: #e2e8f0; }
-
-.user-profile { display: flex; align-items: center; gap: 12px; }
-.avatar-container { position: relative; }
-.avatar-circle {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #0072CE 0%, #227cc5 100%);
-  color: #ffffff;
+.notif-title {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 0.82rem;
   font-weight: 700;
-  font-size: 1.05rem;
-  border-radius: 14px;
-  display: flex;
+}
+
+.notif-desc {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.notif-time {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+}
+
+.user-meta {
+  display: none;
+  max-width: 150px;
+  text-align: right;
+}
+
+.user-name,
+.user-role {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-name {
+  color: var(--color-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.user-role {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  text-transform: capitalize;
+}
+
+.user-avatar {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 10px rgba(0, 114, 206, 0.25);
-}
-.online-indicator {
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 11px;
-  height: 11px;
-  background-color: #10b981;
-  border: 2px solid #ffffff;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-darker);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
-
-.user-details { display: flex; flex-direction: column; }
-.user-name { margin: 0; font-size: 0.92rem; font-weight: 700; color: #0f172a; }
-.role-badge { font-size: 0.72rem; font-weight: 600; color: #0072CE; }
 
 .logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  padding: 0.65rem 1.2rem;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 6px;
+  color: var(--color-muted);
 }
-.logout-btn:hover {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+
+.logout-label {
+  display: none;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
-.logout-icon { width: 18px; height: 18px; }
+
+@media (max-width: 359.98px) {
+  .brand-text {
+    display: none;
+  }
+}
+
+@media (min-width: 480px) {
+  .logout-label {
+    display: inline;
+  }
+
+  .logout-btn {
+    padding: 0 12px;
+  }
+}
+
+@media (min-width: 640px) {
+  .app-header {
+    height: 64px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .app-header__brand {
+    position: static;
+    transform: none;
+    margin-right: 12px;
+  }
+
+  .app-header__page {
+    display: block;
+    padding-left: 12px;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .user-meta {
+    display: block;
+  }
+
+  .notifications-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    left: auto;
+    width: 360px;
+    max-height: min(480px, calc(100dvh - 96px));
+  }
+}
+
+@media (min-width: 768px) {
+  .brand-text {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-header {
+    left: var(--sidebar-width);
+  }
+
+  .menu-btn,
+  .app-header__brand {
+    display: none;
+  }
+
+  .app-header__page {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .logout-btn {
+    display: none;
+  }
+}
 </style>
