@@ -13,6 +13,7 @@ export const menuByRole = {
     { path: 'bandeja', label: 'Bandeja de Solicitudes', icon: 'Inbox' },
     { path: 'registro', label: 'Registro Presencial', icon: 'ClipboardList' },
     { path: 'entregas', label: 'Control de Entregas', icon: 'PackageCheck' },
+    { path: 'familias', label: 'Familias', icon: 'Users' },
   ],
   familia: [
     { path: 'dashboard', label: 'Mi Panel', icon: 'LayoutDashboard' },

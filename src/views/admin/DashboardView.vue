@@ -8,7 +8,7 @@
           Panel de Control General
         </div>
         <h1>Gestión de Administración — SIGAS</h1>
-        <p>Monitoreo y control centralizado de familias, sectores, roles e histórico de distribución</p>
+        <p>Monitoreo del ciclo activo y control centralizado del sistema</p>
       </div>
       <button class="refresh-btn" @click="cargarDatos" :disabled="loading">
         <svg viewBox="0 0 24 24" class="icon" :class="{ spin: loading }">
@@ -18,38 +18,43 @@
       </button>
     </header>
 
-    <!-- TARJETAS DE MÉTRICAS -->
+    <!-- BANNER SI NO HAY CICLO ACTIVO -->
+    <div v-if="!loading && !cicloActivo" class="alert-banner">
+      ⚠️ <strong>Atención:</strong> No hay un ciclo de distribución activo en este momento. La información mostrada corresponde al último estado del sistema.
+    </div>
+
+    <!-- TARJETAS DE MÉTRICAS (DEL CICLO ACTIVO) -->
     <div class="metrics-grid">
       <div class="metric-card border-blue">
         <div class="card-icon blue">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05c1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         </div>
         <div class="metric-info">
-          <h3>Total Familias</h3>
-          <p class="number">{{ familias.length }}</p>
-          <span class="subtext">Registradas en el sistema</span>
+          <h3>Ciclo Actual</h3>
+          <p class="number-text">{{ cicloActivo?.nombre_ciclo || 'Sin Ciclo' }}</p>
+          <span class="subtext">Jornada en curso</span>
         </div>
       </div>
 
       <div class="metric-card border-cyan">
         <div class="card-icon cyan">
-          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5z"/></svg>
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
         </div>
         <div class="metric-info">
-          <h3>Calles Activas</h3>
-          <p class="number">{{ calles.length }}</p>
-          <span class="subtext">Sectores censados</span>
+          <h3>Total Solicitudes</h3>
+          <p class="number">{{ pedidosCiclo.length }}</p>
+          <span class="subtext">Pedidos en este ciclo</span>
         </div>
       </div>
 
       <div class="metric-card border-amber">
         <div class="card-icon amber">
-          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
         </div>
         <div class="metric-info">
-          <h3>Ciclos Realizados</h3>
-          <p class="number">{{ listaHistoricoCiclos.length }}</p>
-          <span class="subtext">Jornadas de gas registradas</span>
+          <h3>Pendientes</h3>
+          <p class="number">{{ totalPendientes }}</p>
+          <span class="subtext">Por entregar</span>
         </div>
       </div>
 
@@ -58,29 +63,35 @@
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2zm-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         </div>
         <div class="metric-info">
-          <h3>Bombonas Entregadas</h3>
-          <p class="number">{{ totalBombonasDespachadas }}</p>
-          <span class="subtext">Total histórico despachado</span>
+          <h3>Entregadas</h3>
+          <p class="number">{{ totalEntregados }}</p>
+          <span class="subtext">Despachadas con éxito</span>
         </div>
       </div>
     </div>
 
-    <!-- SECCIÓN DE HISTÓRICO DE CICLOS -->
+    <!-- TABLA DE SOLICITUDES DEL CICLO ACTIVO (LIMITADO A 5 REGISTROS POR PÁGINA) -->
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Histórico de Ciclos de Distribución</h2>
-          <p>Resumen consolidado de solicitudes y entregas por cada jornada de gas</p>
+          <h2>Solicitudes del Ciclo Activo</h2>
+          <p>Mostrando los primeros 5 registros por vista</p>
+        </div>
+        <div class="search-box">
+          <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input v-model="filtroBusqueda" type="text" placeholder="Buscar por Familia o Calle..." />
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Cargando información de jornadas...</p>
+        <p>Cargando información desde Supabase...</p>
       </div>
 
-      <div v-else-if="listaHistoricoCiclos.length === 0" class="empty-state">
-        <p>No hay jornadas o ciclos registrados en el sistema todavía.</p>
+      <div v-else-if="pedidosPaginados.length === 0" class="empty-state">
+        <p>No hay solicitudes registradas para el ciclo activo actual.</p>
       </div>
 
       <div v-else class="table-wrapper">
@@ -88,68 +99,61 @@
           <thead>
             <tr>
               <th># ID</th>
-              <th>Nombre del Ciclo</th>
-              <th>Calle / Sector</th>
-              <th>Entregadas / Solicitadas</th>
-              <th>Fecha Inicio</th>
-              <th>Estado</th>
-              <th>Acción</th>
+              <th>Familia</th>
+              <th>Calle</th>
+              <th>Tipo Bombona</th>
+              <th>Pico</th>
+              <th>Estatus</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="ciclo in listaHistoricoCiclos" :key="ciclo.id_ciclo" class="table-row">
-              <td class="id-cell" data-label="ID">#{{ ciclo.id_ciclo }}</td>
-              <td class="name-cell" data-label="Nombre del ciclo">
-                <span class="family-name">{{ ciclo.nombre_ciclo }}</span>
+            <tr v-for="pedido in pedidosPaginados" :key="pedido.id_pedido" class="table-row">
+              <td class="id-cell" data-label="ID">#{{ pedido.id_pedido }}</td>
+              <td class="name-cell" data-label="Familia">
+                <span class="family-name">{{ pedido.familias?.nombre_familia || 'Familia' }}</span>
               </td>
-              <td data-label="Calle / Sector">
-                <span class="badge-calle">{{ ciclo.calles?.nombre || 'Comunidad General' }}</span>
+              <td data-label="Calle">
+                <span class="badge-calle">{{ pedido.familias?.calles?.nombre || 'Sin calle' }}</span>
               </td>
-              <td data-label="Entregadas / Solicitadas">
-                <span class="qty-badge">
-                  <strong class="text-green">{{ ciclo.totalEntregados }}</strong> / {{ ciclo.totalSolicitudes }}
-                </span>
-              </td>
-              <td data-label="Fecha inicio">{{ ciclo.fecha_inicio ? new Date(ciclo.fecha_inicio).toLocaleDateString('es-VE') : '-' }}</td>
-              <td data-label="Estado">
-                <span class="status-indicator" :class="{ active: ciclo.estado === 'activo' }">
+              <td data-label="Tipo Bombona">{{ pedido.tipo_bombona }}</td>
+              <td data-label="Pico">{{ pedido.pico }}</td>
+              <td data-label="Estatus">
+                <span class="status-indicator" :class="{ active: pedido.status === 'entregado', pending: pedido.status === 'pendiente' || pedido.status === 'aceptado' }">
                   <span class="status-dot"></span>
-                  {{ ciclo.estado }}
+                  {{ pedido.status }}
                 </span>
-              </td>
-              <td data-label="Acción">
-                <button class="action-btn-detail" @click="verDetalleCiclo(ciclo)">
-                  🔍 Ver Detalle
-                </button>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- PAGINADOR A 5 REGISTROS -->
+        <div v-if="pedidosFiltrados.length > 5" class="pagination-footer">
+          <span>Página {{ paginaActual }} de {{ totalPaginas }} ({{ pedidosFiltrados.length }} solicitudes en total)</span>
+          <div class="pagination-buttons">
+            <button class="btn-page" :disabled="paginaActual === 1" @click="paginaActual--">
+              ◀ Anterior
+            </button>
+            <button class="btn-page" :disabled="paginaActual === totalPaginas" @click="paginaActual++">
+              Siguiente ▶
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- TABLA PRINCIPAL DE REGISTROS (USUARIOS Y ROLES) -->
+    <!-- TABLA DE GESTIÓN DE USUARIOS Y ROLES -->
     <div class="table-card">
       <div class="table-header">
         <div>
           <h2>Gestión de Usuarios y Roles</h2>
           <p>Modifica los permisos y roles de los usuarios directamente sobre la base de datos</p>
         </div>
-        <div class="search-box">
-          <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input v-model="filtroBusqueda" type="text" placeholder="Buscar por Cédula o Nombre..." />
-        </div>
       </div>
 
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Cargando registros desde Supabase...</p>
-      </div>
-
-      <div v-else-if="familiasFiltradas.length === 0" class="empty-state">
-        <p>No se encontraron familias registradas con esa búsqueda.</p>
+        <p>Cargando registros de usuarios...</p>
       </div>
 
       <div v-else class="table-wrapper">
@@ -164,7 +168,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="familia in familiasFiltradas" :key="familia.id" class="table-row">
+            <tr v-for="familia in familias" :key="familia.id" class="table-row">
               <td class="id-cell" data-label="Cédula (ID)">V-{{ familia.id }}</td>
               <td class="name-cell" data-label="Familia">
                 <div class="avatar">{{ familia.nombre_familia ? familia.nombre_familia.charAt(0).toUpperCase() : 'F' }}</div>
@@ -196,54 +200,6 @@
         </table>
       </div>
     </div>
-
-    <!-- MODAL DE DETALLE DEL CICLO SELECCIONADO -->
-    <div v-if="cicloSeleccionado" class="modal-overlay admin-detail-modal" @click.self="cicloSeleccionado = null">
-      <div class="modal-box admin-detail-box" role="dialog" aria-modal="true" aria-label="Detalle del ciclo">
-        <span class="modal-sheet-handle" aria-hidden="true"></span>
-        <div class="modal-header">
-          <div>
-            <h3>{{ cicloSeleccionado.nombre_ciclo }}</h3>
-            <p>Sector: {{ cicloSeleccionado.calles?.nombre || 'General (Todas las calles)' }}</p>
-          </div>
-          <button class="close-modal" @click="cicloSeleccionado = null">✕</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="detail-stats-grid">
-            <div class="detail-card">
-              <span>Total Solicitudes</span>
-              <strong>{{ cicloSeleccionado.totalSolicitudes }}</strong>
-            </div>
-            <div class="detail-card text-green-box">
-              <span>Entregados Exitosos</span>
-              <strong>{{ cicloSeleccionado.totalEntregados }}</strong>
-            </div>
-          </div>
-
-          <div class="breakdown-section">
-            <h4>Desglose por Tipo de Bombona:</h4>
-            <div class="breakdown-list">
-              <div 
-                v-for="(cant, tipo) in cicloSeleccionado.desgloseBombonas" 
-                :key="tipo" 
-                class="breakdown-item"
-              >
-                <span>Bombona {{ tipo }}</span>
-                <strong>{{ cant }} unid.</strong>
-              </div>
-              <div v-if="Object.keys(cicloSeleccionado.desgloseBombonas || {}).length === 0" class="no-data">
-                No hay entregas registradas en este ciclo aún.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn-secondary" @click="cicloSeleccionado = null">Cerrar</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -254,17 +210,46 @@ import { supabase } from '../../composables/supabase.js'
 const familias = ref([])
 const calles = ref([])
 const cargos = ref([])
-const listaHistoricoCiclos = ref([])
-const cicloSeleccionado = ref(null)
+const cicloActivo = ref(null)
+const pedidosCiclo = ref([])
 const filtroBusqueda = ref('')
 const loading = ref(true)
 
-const totalBombonasDespachadas = computed(() => {
-  return listaHistoricoCiclos.value.reduce((acc, c) => acc + (c.totalEntregados || 0), 0)
+// Controles de Paginación (5 por vista)
+const paginaActual = ref(1)
+const porPagina = 5
+
+const totalPendientes = computed(() => {
+  return pedidosCiclo.value.filter(p => p.status === 'pendiente' || p.status === 'aceptado').length
+})
+
+const totalEntregados = computed(() => {
+  return pedidosCiclo.value.filter(p => p.status === 'entregado').length
+})
+
+const pedidosFiltrados = computed(() => {
+  if (!filtroBusqueda.value.trim()) return pedidosCiclo.value
+  const query = filtroBusqueda.value.toLowerCase().trim()
+  return pedidosCiclo.value.filter(p => {
+    const familiaNombre = p.familias?.nombre_familia?.toLowerCase() || ''
+    const calleNombre = p.familias?.calles?.nombre?.toLowerCase() || ''
+    return familiaNombre.includes(query) || calleNombre.includes(query)
+  })
+})
+
+const totalPaginas = computed(() => {
+  return Math.ceil(pedidosFiltrados.value.length / porPagina) || 1
+})
+
+// Recorte exacto para 5 registros por vista
+const pedidosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * porPagina
+  return pedidosFiltrados.value.slice(inicio, inicio + porPagina)
 })
 
 async function cargarDatos() {
   loading.value = true
+  paginaActual.value = 1
   try {
     const { data: callesData } = await supabase.from('calles').select('*').eq('activo', true)
     if (callesData) calles.value = callesData
@@ -272,43 +257,38 @@ async function cargarDatos() {
     const { data: cargosData } = await supabase.from('cargos').select('*')
     if (cargosData) cargos.value = cargosData
 
-    const { data: familiasData, error } = await supabase.from('familias').select('*')
-    if (!error && familiasData) {
-      familias.value = familiasData
-    }
+    const { data: familiasData } = await supabase.from('familias').select('*')
+    if (familiasData) familias.value = familiasData
 
-    // Cargar Histórico de Ciclos y Pedidos
-    const { data: ciclosData } = await supabase
+    // 1. Consultar el ciclo que esté activo
+    const { data: ciclos } = await supabase
       .from('ciclos_distribucion')
-      .select(`
-        *,
-        calles (id_calle, nombre),
-        pedidos (
-          id_pedido,
-          tipo_bombona,
-          status
-        )
-      `)
+      .select('*')
+      .eq('estado', 'activo')
       .order('id_ciclo', { ascending: false })
+      .limit(1)
 
-    if (ciclosData) {
-      listaHistoricoCiclos.value = ciclosData.map((c) => {
-        const pedidosList = c.pedidos || []
-        const entregados = pedidosList.filter((p) => p.status === 'entregado')
+    if (ciclos && ciclos.length > 0) {
+      cicloActivo.value = ciclos[0]
 
-        const desglose = {}
-        entregados.forEach((p) => {
-          const t = p.tipo_bombona || 'General'
-          desglose[t] = (desglose[t] || 0) + 1
-        })
+      // 2. Traer únicamente los pedidos del ciclo activo
+      const { data: pedidosData } = await supabase
+        .from('pedidos')
+        .select(`
+          *,
+          familias (
+            id,
+            nombre_familia,
+            calles (id_calle, nombre)
+          )
+        `)
+        .eq('id_ciclo', cicloActivo.value.id_ciclo)
+        .order('id_pedido', { ascending: false })
 
-        return {
-          ...c,
-          totalSolicitudes: pedidosList.length,
-          totalEntregados: entregados.length,
-          desgloseBombonas: desglose
-        }
-      })
+      pedidosCiclo.value = pedidosData || []
+    } else {
+      cicloActivo.value = null
+      pedidosCiclo.value = []
     }
   } catch (e) {
     console.error('Error cargando datos de Supabase:', e)
@@ -325,7 +305,7 @@ async function actualizarRol(familia) {
       .eq('id', familia.id)
 
     if (error) {
-      console.error('Error al actualizar el rol en Supabase:', error.message)
+      console.error('Error al actualizar el rol:', error.message)
       alert('Hubo un error al actualizar el rol.')
       cargarDatos()
     }
@@ -334,30 +314,71 @@ async function actualizarRol(familia) {
   }
 }
 
-function verDetalleCiclo(ciclo) {
-  cicloSeleccionado.value = ciclo
+function obtenerNombreCalle(idCalle) {
+  const c = calles.value.find((item) => item.id_calle === idCalle)
+  return c ? c.nombre : `Calle ID ${idCalle}`
 }
 
 onMounted(() => {
   cargarDatos()
 })
-
-const familiasFiltradas = computed(() => {
-  if (!filtroBusqueda.value.trim()) return familias.value
-  const query = filtroBusqueda.value.toLowerCase().trim()
-  return familias.value.filter(
-    (f) =>
-      String(f.id).includes(query) ||
-      (f.nombre_familia && f.nombre_familia.toLowerCase().includes(query))
-  )
-})
-
-function obtenerNombreCalle(idCalle) {
-  const c = calles.value.find((item) => item.id_calle === idCalle)
-  return c ? c.nombre : `Calle ID ${idCalle}`
-}
 </script>
 
+<style scoped>
+/* Estilos extras para la alerta y paginación manteniendo tu diseño original */
+.alert-banner {
+  padding: 1rem;
+  background-color: #fffbebf5;
+  border: 1px solid #fef08a;
+  border-radius: 0.75rem;
+  color: #854d0e;
+  font-size: 0.9rem;
+}
+
+.number-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.pagination-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-page {
+  padding: 0.35rem 0.75rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  background-color: #e5e7eb;
+}
+
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 

@@ -6,12 +6,16 @@
         <h1>Calles y Sectores Registrados</h1>
         <p>Gestión de calles activas para la distribución de gas</p>
       </div>
-      <button class="action-btn" @click="mostrarModal = true">+ Nueva Calle</button>
+      <button class="action-btn" @click="abrirModalCrear">+ Nueva Calle</button>
     </header>
 
     <div class="table-card">
       <div v-if="loading" class="loading-state"><div class="spinner"></div>Cargando calles...</div>
       
+      <div v-else-if="calles.length === 0" class="empty-state">
+        No hay calles registradas actualmente.
+      </div>
+
       <div v-else class="table-wrapper">
         <table class="custom-table">
           <thead>
@@ -19,6 +23,7 @@
               <th>ID</th>
               <th>Nombre de la Calle</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -31,26 +36,47 @@
                   {{ calle.activo ? 'Activa' : 'Inactiva' }}
                 </span>
               </td>
+              <td data-label="Acciones" class="actions-cell">
+                <button class="btn-edit" @click="abrirModalEditar(calle)">
+                   Editar
+                </button>
+                <button class="btn-delete" @click="confirmarEliminacion(calle)">
+                   Eliminar
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- MODAL NUEVA CALLE -->
-    <div v-if="mostrarModal" class="modal-overlay" @click.self="mostrarModal = false">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Registrar nueva calle">
+    <!-- MODAL DE CREAR / EDITAR CALLE -->
+    <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
+      <div class="modal-card" role="dialog" aria-modal="true" :aria-label="esEdicion ? 'Editar calle' : 'Registrar nueva calle'">
         <span class="modal-sheet-handle" aria-hidden="true"></span>
-        <h3>Registrar Nueva Calle</h3>
+        <h3>{{ esEdicion ? 'Editar Calle' : 'Registrar Nueva Calle' }}</h3>
+        
         <form @submit.prevent="guardarCalle" class="modal-form">
           <div class="field">
-            <input v-model="nombreNuevaCalle" type="text" placeholder="Nombre de la Calle" required class="input-field" />
+            <input 
+              v-model="nombreCalle" 
+              type="text" 
+              placeholder="Nombre de la Calle" 
+              required 
+              class="input-field" 
+            />
           </div>
+
+          <div v-if="esEdicion" class="field flex-row">
+            <label class="field-label">Calle Activa:</label>
+            <input type="checkbox" v-model="estadoCalle" class="checkbox-input" />
+          </div>
+
           <div class="btn-group">
             <button type="submit" class="button1" :disabled="guardando">
-              {{ guardando ? 'Guardando...' : 'Guardar' }}
+              {{ guardando ? 'Guardando...' : (esEdicion ? 'Actualizar' : 'Guardar') }}
             </button>
-            <button type="button" class="button2" @click="mostrarModal = false">Cancelar</button>
+            <button type="button" class="button2" @click="cerrarModal">Cancelar</button>
           </div>
         </form>
       </div>
@@ -64,9 +90,14 @@ import { supabase } from '../../composables/supabase.js'
 
 const calles = ref([])
 const loading = ref(true)
-const mostrarModal = ref(false)
-const nombreNuevaCalle = ref('')
 const guardando = ref(false)
+
+// Estado del Modal y Formulario
+const mostrarModal = ref(false)
+const esEdicion = ref(false)
+const calleSeleccionadaId = ref(null)
+const nombreCalle = ref('')
+const estadoCalle = ref(true)
 
 async function cargarCalles() {
   loading.value = true
@@ -75,13 +106,75 @@ async function cargarCalles() {
   loading.value = false
 }
 
+function abrirModalCrear() {
+  esEdicion.value = false
+  calleSeleccionadaId.value = null
+  nombreCalle.value = ''
+  estadoCalle.value = true
+  mostrarModal.value = true
+}
+
+function abrirModalEditar(calle) {
+  esEdicion.value = true
+  calleSeleccionadaId.value = calle.id_calle
+  nombreCalle.value = calle.nombre
+  estadoCalle.value = calle.activo
+  mostrarModal.value = true
+}
+
+function cerrarModal() {
+  mostrarModal.value = false
+}
+
 async function guardarCalle() {
   guardando.value = true
-  const { error } = await supabase.from('calles').insert([{ nombre: nombreNuevaCalle.value, activo: true }])
+
+  if (esEdicion.value) {
+    // Actualización de registro existente
+    const { error } = await supabase
+      .from('calles')
+      .update({ 
+        nombre: nombreCalle.value,
+        activo: estadoCalle.value
+      })
+      .eq('id_calle', calleSeleccionadaId.value)
+
+    if (!error) {
+      cerrarModal()
+      cargarCalles()
+    } else {
+      alert('Error al actualizar la calle: ' + error.message)
+    }
+  } else {
+    // Inserción de nuevo registro
+    const { error } = await supabase
+      .from('calles')
+      .insert([{ nombre: nombreCalle.value, activo: true }])
+
+    if (!error) {
+      cerrarModal()
+      cargarCalles()
+    } else {
+      alert('Error al crear la calle: ' + error.message)
+    }
+  }
+
   guardando.value = false
-  if (!error) {
-    nombreNuevaCalle.value = ''
-    mostrarModal.value = false
+}
+
+async function confirmarEliminacion(calle) {
+  const confirmacion = confirm(`¿Estás seguro de eliminar la calle "${calle.nombre}"?`)
+  if (!confirmacion) return
+
+  const { error } = await supabase
+    .from('calles')
+    .delete()
+    .eq('id_calle', calle.id_calle)
+
+  if (error) {
+    alert('No se pudo eliminar la calle. Es posible que tenga familias o registros asociados.')
+    console.error('Error al eliminar:', error.message)
+  } else {
     cargarCalles()
   }
 }
@@ -239,7 +332,78 @@ onMounted(cargarCalles)
   background-color: currentColor;
 }
 
-.loading-state { 
+/* ==========================================================================
+   ESTILOS DE BOTONES DE ACCIÓN (ELEGANTES Y SUTILES)
+   ========================================================================== */
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-edit:hover {
+  background-color: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+.btn-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.checkbox-input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.loading-state, .empty-state { 
   text-align: center; 
   padding: 3rem; 
   color: #64748b; 
@@ -358,173 +522,49 @@ onMounted(cargarCalles)
   color: #0f172a;
 }
 
-/* ==========================================================================
-   RESPONSIVE · mobile-first
-   ========================================================================== */
-.header-banner {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 14px;
-  padding: 18px 16px;
-  border-radius: 16px;
-}
-
-.header-banner h1 {
-  font-size: 1.4rem;
-  line-height: 1.25;
-}
-
-.header-banner p {
-  font-size: 0.84rem;
-  line-height: 1.5;
-}
-
-.badge {
-  font-size: 0.68rem;
-}
-
-.action-btn {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 16px;
-  font-size: 0.85rem;
-}
-
-.table-card {
-  padding: 14px;
-  border-radius: 16px;
-}
-
-.modal-overlay {
-  align-items: flex-end;
-  padding: 0;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: none;
-  max-height: 85dvh;
-  padding: 12px 16px calc(16px + var(--safe-bottom));
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 20px 20px 0 0;
-  animation: sheetUp 0.22s ease-out;
-}
-
-.modal-sheet-handle {
-  display: block;
-  width: 40px;
-  height: 4px;
-  margin: 0 auto 14px;
-  border-radius: 999px;
-  background: #e2e8f0;
-}
-
-.modal-card h3 {
-  margin-bottom: 16px;
-  font-size: 1.08rem;
-}
-
-.input-field {
-  min-height: 44px;
-  font-size: 16px;
-}
-
-.btn-group {
-  flex-direction: column;
-  gap: 8px;
-}
-
-.button1,
-.button2 {
-  min-height: 44px;
-}
-
-@keyframes sheetUp {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@media (min-width: 640px) {
-  .admin-page {
-    gap: 1.5rem;
-  }
-
+/* RESPONSIVE */
+@media (max-width: 639px) {
   .header-banner {
-    flex-direction: row;
-    align-items: center;
-    padding: 1.6rem;
-  }
-
-  .header-banner h1 {
-    font-size: 1.6rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 18px 16px;
+    border-radius: 16px;
   }
 
   .action-btn {
-    width: auto;
-    min-height: 40px;
+    width: 100%;
+    min-height: 44px;
   }
 
-  .table-card {
-    padding: 1.25rem;
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .btn-group {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 640px) {
+  .header-banner {
+    flex-direction: row;
+    align-items: center;
   }
 
   .modal-overlay {
     align-items: center;
-    padding: 20px;
   }
 
   .modal-card {
     width: 400px;
-    max-width: 100%;
-    max-height: 85vh;
-    padding: 1.75rem;
     border-radius: 18px;
-    animation: none;
-  }
-
-  .modal-sheet-handle {
-    display: none;
-  }
-
-  .input-field {
-    min-height: 40px;
-    font-size: 15px;
-  }
-
-  .btn-group {
-    flex-direction: row;
-    gap: 10px;
-  }
-
-  .button1,
-  .button2 {
-    min-height: 40px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .admin-page {
-    gap: 1.75rem;
-  }
-
-  .header-banner {
-    padding: 2.2rem;
-    border-radius: 20px;
-  }
-
-  .header-banner h1 {
-    font-size: 1.85rem;
-  }
-
-  .table-card {
-    padding: 1.6rem;
-    border-radius: 20px;
-  }
-
-  .input-field {
-    min-height: 38px;
-    font-size: 14px;
   }
 }
 </style>
