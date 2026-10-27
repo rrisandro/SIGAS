@@ -1,26 +1,30 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto">
-    <h2 class="text-2xl font-bold mb-2 text-gray-800">Registro de Solicitud</h2>
-    <p class="text-sm text-gray-500 mb-6">Gestión de calle</p>
+  <div class="page form-page">
+    <div class="page-heading">
+      <h2 class="page-title">Registro de Solicitud</h2>
+      <p class="page-subtitle">Gestión de calle</p>
+    </div>
 
     <!-- Estado de Carga -->
-    <div v-if="loading" class="mb-6 p-4 bg-gray-50 text-gray-600 rounded-lg border border-gray-200">
+    <div v-if="loading" class="state-banner state-banner--loading">
       Cargando información del ciclo y familias...
     </div>
 
     <!-- Alerta de Ciclo Inactivo -->
-    <div v-else-if="!cicloActivo" class="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-300 flex items-center gap-2">
-      <span>⚠️ <strong>Atención:</strong> No hay ningún ciclo de distribución activo en este momento. No se pueden registrar solicitudes.</span>
+    <div v-else-if="!cicloActivo" class="state-banner state-banner--warning">
+      <span aria-hidden="true">⚠️</span>
+      <span><strong>Atención:</strong> No hay ningún ciclo de distribución activo en este momento. No se pueden registrar solicitudes.</span>
     </div>
 
-    <div v-if="jefe" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <p class="text-sm text-gray-600">
-        Jefe de calle: <span class="font-medium text-blue-700">{{ jefe.nombre }}</span>
+    <div v-if="jefe" class="jefe-banner">
+      <span class="jefe-banner__icon" aria-hidden="true">👤</span>
+      <p>
+        Jefe de calle:
+        <strong>{{ jefe.nombre }}</strong>
       </p>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <!-- Agregamos :key para forzar la reactividad del selector -->
+    <div class="form-card">
       <CascadingSelector
         :key="familiasDisponibles.length + '-' + (cicloActivo?.id_ciclo || 0)"
         ref="selectorRef"
@@ -31,17 +35,17 @@
         @selection-change="onSelectionUpdate"
       />
 
-      <div class="mt-4 max-w-md">
-        <BaseInput 
-          v-model="observaciones" 
-          label="Observaciones" 
+      <div class="field-narrow">
+        <BaseInput
+          v-model="observaciones"
+          label="Observaciones"
           placeholder="Opcional"
         />
       </div>
 
-      <div class="mt-6 flex justify-end">
-        <BaseButton 
-          @click="submit" 
+      <div class="form-actions">
+        <BaseButton
+          @click="submit"
           variant="success"
           :disabled="!selectionComplete || !cicloActivo || loading"
           size="md"
@@ -50,11 +54,11 @@
         </BaseButton>
       </div>
 
-      <div v-if="success" class="mt-4 p-4 bg-green-100 text-green-700 rounded-lg border border-green-300">
+      <div v-if="success" class="form-message form-message--success">
         {{ success }}
       </div>
 
-      <div v-if="error" class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
+      <div v-if="error" class="form-message form-message--error">
         {{ error }}
       </div>
     </div>
@@ -225,3 +229,99 @@ async function submit() {
   }
 }
 </script>
+
+<style scoped>
+.form-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 960px;
+}
+
+.jefe-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  color: #1e40af;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.jefe-banner__icon {
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.jefe-banner strong {
+  font-weight: 600;
+}
+
+.state-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.state-banner--loading {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+.state-banner--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.state-banner--warning strong {
+  color: #78350f;
+}
+
+.form-card {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.field-narrow {
+  width: 100%;
+  max-width: 440px;
+  margin-top: 16px;
+}
+
+@media (min-width: 640px) {
+  .form-page {
+    gap: 24px;
+  }
+
+  .jefe-banner {
+    padding: 14px 18px;
+  }
+
+  .form-card {
+    padding: 24px;
+  }
+
+  .field-narrow {
+    margin-top: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-card {
+    padding: 28px;
+  }
+}
+</style>

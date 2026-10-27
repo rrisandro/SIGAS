@@ -1,5 +1,5 @@
 <template>
-  <div class="grid gap-4 sm:grid-cols-2">
+  <div class="cascading-selector">
     <BaseSelect
       v-model="calleId"
       label="Calle"
@@ -103,3 +103,26 @@ function reset() {
 
 defineExpose({ reset })
 </script>
+
+<style scoped>
+.cascading-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .cascading-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .cascading-selector {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+</style>

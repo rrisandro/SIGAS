@@ -1,18 +1,19 @@
 <template>
-  <div class="space-y-6">
+  <div class="page deliveries-page">
     <!-- Header y Filtro por Ciclo -->
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-      <div>
-        <h2 class="text-xl font-medium text-gray-800">Control de Entregas</h2>
-        <p class="text-sm text-gray-500">Gestión de entregas sectorizadas por jornada</p>
+    <div class="deliveries-header">
+      <div class="page-heading">
+        <h2 class="page-title">Control de Entregas</h2>
+        <p class="page-subtitle">Gestión de entregas sectorizadas por jornada</p>
       </div>
 
       <!-- Desplegable para Filtrar por Ciclo -->
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Filtrar por Ciclo:</label>
+      <div class="cycle-filter">
+        <label for="cycle-filter-select" class="cycle-filter__label">Filtrar por Ciclo:</label>
         <select
+          id="cycle-filter-select"
           v-model="cicloSeleccionado"
-          class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm"
+          class="cycle-filter__select"
         >
           <option value="todos">Todos los Ciclos</option>
           <option v-for="ciclo in listaCiclos" :key="ciclo.id_ciclo" :value="ciclo.id_ciclo">
@@ -23,11 +24,11 @@
     </div>
 
     <!-- Indicador de Carga -->
-    <div v-if="cargando" class="py-8 text-center text-gray-500">
+    <div v-if="cargando" class="loading-box">
       Cargando información de entregas...
     </div>
 
-    <div v-else class="space-y-6">
+    <div v-else class="deliveries-stack">
       <!-- Entregas Pendientes (Pedidos Aceptados) -->
       <CrudDataTable
         title="Pedidos Aceptados (Pendientes por Entrega)"
@@ -59,46 +60,56 @@
     </div>
 
     <!-- Modal para registrar entrega -->
-    <div v-if="showEntrega" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showEntrega = false" />
-      <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-        <!-- Header del modal -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+    <Teleport to="body">
+      <div v-if="showEntrega" class="delivery-modal">
+        <div class="delivery-modal__backdrop" @click="showEntrega = false" />
+
+        <div
+          class="delivery-modal__panel"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmar entrega"
+        >
+          <span class="delivery-modal__handle" aria-hidden="true" />
+
+          <!-- Header del modal -->
+          <div class="delivery-modal__header">
+            <div class="delivery-modal__icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h3>Confirmar Entrega</h3>
+              <p>
+                {{ selected?.familia || 'Familia' }} — Bombona {{ selected?.tipo || '' }}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">Confirmar Entrega</h3>
-            <p class="text-sm text-gray-500">
-              {{ selected?.familia || 'Familia' }} — Bombona {{ selected?.tipo || '' }}
-            </p>
+
+          <div class="delivery-modal__divider" />
+
+          <p class="delivery-modal__text">
+            ¿Confirmas que la bombona ha sido despachada y entregada exitosamente al usuario? Esta acción cambiará el estado del pedido a <strong>entregado</strong> y guardará la constancia en el historial.
+          </p>
+
+          <!-- Error -->
+          <p v-if="errorEntrega" class="delivery-modal__error">
+            {{ errorEntrega }}
+          </p>
+
+          <div class="delivery-modal__divider" />
+
+          <!-- Botones -->
+          <div class="delivery-modal__actions">
+            <BaseButton variant="ghost" @click="showEntrega = false">Cancelar</BaseButton>
+            <BaseButton variant="success" :disabled="guardando" @click="confirmarEntrega">
+              {{ guardando ? 'Guardando...' : 'Confirmar Entrega' }}
+            </BaseButton>
           </div>
-        </div>
-
-        <div class="border-t border-gray-200 my-2" />
-
-        <p class="text-sm text-gray-600">
-          ¿Confirmas que la bombona ha sido despachada y entregada exitosamente al usuario? Esta acción cambiará el estado del pedido a <strong class="text-green-600">entregado</strong> y guardará la constancia en el historial.
-        </p>
-
-        <!-- Error -->
-        <p v-if="errorEntrega" class="text-sm text-red-600 font-medium">
-          {{ errorEntrega }}
-        </p>
-
-        <div class="border-t border-gray-200 my-2" />
-
-        <!-- Botones -->
-        <div class="flex justify-end gap-2">
-          <BaseButton variant="ghost" @click="showEntrega = false">Cancelar</BaseButton>
-          <BaseButton variant="success" :disabled="guardando" @click="confirmarEntrega">
-            {{ guardando ? 'Guardando...' : 'Confirmar Entrega' }}
-          </BaseButton>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -167,10 +178,10 @@ const entregasRealizadas = computed(() => {
       const pedidoRel = h.pedidos || h.pedido || listaPedidos.value.find(p => p.id_pedido === h.id_pedido)
       const nombreFamilia = pedidoRel?.familias?.nombre_familia || pedidoRel?.familia?.nombre_familia || 'Familia'
       const tipoBombona = pedidoRel?.tipo_bombona ? `Bombona ${pedidoRel.tipo_bombona}` : 'Bombona'
-      
-      const nombreCiclo = h.ciclos_distribucion?.nombre_ciclo 
-                       || pedidoRel?.ciclos_distribucion?.nombre_ciclo 
-                       || h.ciclo_distribucion 
+
+      const nombreCiclo = h.ciclos_distribucion?.nombre_ciclo
+                       || pedidoRel?.ciclos_distribucion?.nombre_ciclo
+                       || h.ciclo_distribucion
                        || 'Ciclo General'
 
       return {
@@ -317,3 +328,255 @@ function formatearFecha(fecha) {
   return new Date(fecha).toLocaleDateString('es-VE')
 }
 </script>
+
+<style scoped>
+.deliveries-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.deliveries-header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.cycle-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.cycle-filter__label {
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.cycle-filter__select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 38px 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 11px;
+  background-color: #ffffff;
+  color: var(--color-text);
+  font-size: 16px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.cycle-filter__select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.deliveries-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.loading-box {
+  padding: 32px 16px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Modal de entrega
+   -------------------------------------------------------------------------- */
+.delivery-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.delivery-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.delivery-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 85dvh;
+  padding: 12px 16px calc(18px + var(--safe-bottom));
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+.delivery-modal__handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.delivery-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.delivery-modal__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: #059669;
+}
+
+.delivery-modal__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.delivery-modal__header h3 {
+  color: var(--color-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.delivery-modal__header p {
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.delivery-modal__divider {
+  height: 1px;
+  margin: 14px 0;
+  background: var(--color-border);
+}
+
+.delivery-modal__text {
+  color: var(--color-text);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.delivery-modal__text strong {
+  color: #059669;
+}
+
+.delivery-modal__error {
+  margin-top: 10px;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.delivery-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.delivery-modal__actions :deep(.btn-custom) {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .deliveries-page {
+    gap: 24px;
+  }
+
+  .deliveries-header {
+    padding: 18px 20px;
+  }
+
+  .cycle-filter__select {
+    min-height: 40px;
+    font-size: 15px;
+  }
+
+  .delivery-modal {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .delivery-modal__panel {
+    max-width: 480px;
+    max-height: 85vh;
+    padding: 20px;
+    border-radius: 16px;
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  .delivery-modal__handle {
+    display: none;
+  }
+
+  .delivery-modal__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .delivery-modal__actions :deep(.btn-custom) {
+    width: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .deliveries-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cycle-filter {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 10px;
+  }
+
+  .cycle-filter__label {
+    white-space: nowrap;
+  }
+
+  .cycle-filter__select {
+    width: auto;
+    min-width: 210px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .deliveries-header {
+    padding: 20px 22px;
+  }
+
+  .delivery-modal__panel {
+    max-width: 520px;
+    padding: 24px;
+  }
+}
+</style>

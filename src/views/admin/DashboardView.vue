@@ -98,26 +98,26 @@
           </thead>
           <tbody>
             <tr v-for="ciclo in listaHistoricoCiclos" :key="ciclo.id_ciclo" class="table-row">
-              <td class="id-cell">#{{ ciclo.id_ciclo }}</td>
-              <td class="name-cell">
+              <td class="id-cell" data-label="ID">#{{ ciclo.id_ciclo }}</td>
+              <td class="name-cell" data-label="Nombre del ciclo">
                 <span class="family-name">{{ ciclo.nombre_ciclo }}</span>
               </td>
-              <td>
+              <td data-label="Calle / Sector">
                 <span class="badge-calle">{{ ciclo.calles?.nombre || 'Comunidad General' }}</span>
               </td>
-              <td>
+              <td data-label="Entregadas / Solicitadas">
                 <span class="qty-badge">
                   <strong class="text-green">{{ ciclo.totalEntregados }}</strong> / {{ ciclo.totalSolicitudes }}
                 </span>
               </td>
-              <td>{{ ciclo.fecha_inicio ? new Date(ciclo.fecha_inicio).toLocaleDateString('es-VE') : '-' }}</td>
-              <td>
+              <td data-label="Fecha inicio">{{ ciclo.fecha_inicio ? new Date(ciclo.fecha_inicio).toLocaleDateString('es-VE') : '-' }}</td>
+              <td data-label="Estado">
                 <span class="status-indicator" :class="{ active: ciclo.estado === 'activo' }">
                   <span class="status-dot"></span>
                   {{ ciclo.estado }}
                 </span>
               </td>
-              <td>
+              <td data-label="Acción">
                 <button class="action-btn-detail" @click="verDetalleCiclo(ciclo)">
                   🔍 Ver Detalle
                 </button>
@@ -165,17 +165,17 @@
           </thead>
           <tbody>
             <tr v-for="familia in familiasFiltradas" :key="familia.id" class="table-row">
-              <td class="id-cell">V-{{ familia.id }}</td>
-              <td class="name-cell">
+              <td class="id-cell" data-label="Cédula (ID)">V-{{ familia.id }}</td>
+              <td class="name-cell" data-label="Familia">
                 <div class="avatar">{{ familia.nombre_familia ? familia.nombre_familia.charAt(0).toUpperCase() : 'F' }}</div>
                 <span class="family-name">{{ familia.nombre_familia || 'Sin nombre' }}</span>
               </td>
-              <td>
+              <td data-label="Calle">
                 <span class="badge-calle">{{ obtenerNombreCalle(familia.id_calle) }}</span>
               </td>
-              <td>
-                <select 
-                  v-model.number="familia.id_cargo" 
+              <td data-label="Rol / Cargo">
+                <select
+                  v-model.number="familia.id_cargo"
                   @change="actualizarRol(familia)"
                   class="role-select"
                   :class="'role-' + familia.id_cargo"
@@ -185,7 +185,7 @@
                   <option :value="3">Familia</option>
                 </select>
               </td>
-              <td>
+              <td data-label="Estado">
                 <span class="status-indicator" :class="{ active: familia.activo }">
                   <span class="status-dot"></span>
                   {{ familia.activo ? 'Activo' : 'Inactivo' }}
@@ -198,8 +198,9 @@
     </div>
 
     <!-- MODAL DE DETALLE DEL CICLO SELECCIONADO -->
-    <div v-if="cicloSeleccionado" class="modal-overlay" @click.self="cicloSeleccionado = null">
-      <div class="modal-box">
+    <div v-if="cicloSeleccionado" class="modal-overlay admin-detail-modal" @click.self="cicloSeleccionado = null">
+      <div class="modal-box admin-detail-box" role="dialog" aria-modal="true" aria-label="Detalle del ciclo">
+        <span class="modal-sheet-handle" aria-hidden="true"></span>
         <div class="modal-header">
           <div>
             <h3>{{ cicloSeleccionado.nombre_ciclo }}</h3>
@@ -360,19 +361,20 @@ function obtenerNombreCalle(idCalle) {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
+/* CONTENEDOR PRINCIPAL DEL DASHBOARD */
 .admin-dashboard {
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: #0f172a;
-  padding: 2rem;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
-  background-color: #f8fafc !important; /* Fondo gris claro estilo SaaS */
-  min-height: 100vh;
+  gap: 1.25rem;
+  background-color: transparent !important; /* El layout aporta el fondo y el padding */
+  min-height: 0;
   box-sizing: border-box;
 }
 
-/* BANNER PRINCIPAL CON ESTILO CORPORATIVO CLARO */
+/* BANNER HEADER CORPORATIVO CLARO */
 .header-banner {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -476,7 +478,7 @@ function obtenerNombreCalle(idCalle) {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
 }
 
@@ -486,8 +488,8 @@ function obtenerNombreCalle(idCalle) {
 .metric-card.border-green { border-left: 4px solid #10b981; }
 
 .metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -5px rgba(0, 114, 206, 0.12);
 }
 
 .card-icon {
@@ -909,4 +911,317 @@ function obtenerNombreCalle(idCalle) {
 }
 
 .btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
+
+/* ==========================================================================
+   RESPONSIVE · mobile-first
+   ========================================================================== */
+.header-banner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 18px 16px;
+  border-left-width: 5px;
+  border-radius: 16px;
+}
+
+.banner-content h1 {
+  font-size: 1.45rem;
+  line-height: 1.25;
+}
+
+.banner-content p {
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.refresh-btn {
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}
+
+.metrics-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.metric-info h3 {
+  font-size: 0.64rem;
+  line-height: 1.3;
+}
+
+.metric-info .number {
+  margin: 0.15rem 0;
+  font-size: 1.35rem;
+}
+
+.metric-info .subtext {
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.table-card {
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.table-header {
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.table-header h2 {
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.table-header p {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.search-box {
+  width: 100%;
+  max-width: none;
+}
+
+.search-box input {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.loading-state,
+.empty-state {
+  padding: 2rem 1rem;
+}
+
+.admin-detail-modal {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.admin-detail-box {
+  width: 100%;
+  max-width: none;
+  max-height: 85dvh;
+  padding: 12px 16px calc(16px + var(--safe-bottom));
+  border-radius: 20px 20px 0 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-sheet-handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.modal-footer .btn-secondary {
+  width: 100%;
+  min-height: 44px;
+}
+
+.close-modal {
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px 0 0;
+  border-radius: 10px;
+}
+
+.close-modal:hover {
+  background: #f1f5f9;
+}
+
+/* Tablet pequeña */
+@media (min-width: 480px) {
+  .metric-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-dashboard {
+    gap: 1.5rem;
+  }
+
+  .header-banner {
+    flex-direction: row;
+    align-items: center;
+    padding: 1.6rem;
+  }
+
+  .banner-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .refresh-btn {
+    width: auto;
+    min-height: 40px;
+  }
+
+  .table-card {
+    padding: 1.25rem;
+  }
+
+  .admin-detail-modal {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .admin-detail-box {
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .modal-sheet-handle {
+    display: none;
+  }
+
+  .modal-footer .btn-secondary {
+    width: auto;
+    min-height: 40px;
+  }
+}
+
+/* Tablet grande */
+@media (min-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .card-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .metric-info h3 {
+    font-size: 0.68rem;
+  }
+
+  .metric-info .number {
+    font-size: 1.5rem;
+  }
+
+  .table-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .search-box {
+    max-width: 300px;
+  }
+
+  .search-box input {
+    min-height: 40px;
+    font-size: 15px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .admin-dashboard {
+    gap: 1.75rem;
+  }
+
+  .header-banner {
+    padding: 2rem 2.2rem;
+    border-radius: 18px;
+  }
+
+  .banner-content h1 {
+    font-size: 1.8rem;
+  }
+
+  .banner-content p {
+    font-size: 0.9rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .metric-card {
+    padding: 1.35rem 1.5rem;
+    border-radius: 16px;
+  }
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .metric-info h3 {
+    font-size: 0.75rem;
+  }
+
+  .metric-info .number {
+    font-size: 1.75rem;
+  }
+
+  .metric-info .subtext {
+    font-size: 0.75rem;
+  }
+
+  .table-card {
+    padding: 1.6rem;
+    border-radius: 18px;
+  }
+
+  .table-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .admin-detail-box {
+    max-width: 520px;
+    padding: 24px;
+  }
+
+  .modal-footer .btn-secondary {
+    min-height: 36px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 </style>

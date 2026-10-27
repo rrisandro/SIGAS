@@ -1,43 +1,78 @@
 <template>
   <div class="admin-page">
+    <!-- CABECERA BANNER CORPORATIVA -->
     <header class="header-banner">
       <div>
-        <div class="badge">Seguridad y Permisos</div>
-        <h1>Control de Usuarios y Roles</h1>
-        <p>Administración de niveles de acceso del sistema</p>
+        <div class="badge">
+          <span class="pulse-dot"></span>
+          Seguridad y Accesos
+        </div>
+        <h1>Gestión de Usuarios del Sistema</h1>
+        <p>Administración centralizada de cuentas, roles de acceso y estados en Supabase</p>
       </div>
+      <button class="action-btn" @click="cargarUsuarios" :disabled="loading">
+        <svg viewBox="0 0 24 24" class="icon" :class="{ spin: loading }">
+          <path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4v3z"/>
+        </svg>
+        Actualizar Datos
+      </button>
     </header>
 
+    <!-- TARJETA DE TABLA PRINCIPAL -->
     <div class="table-card">
-      <div v-if="loading" class="loading-state"><div class="spinner"></div>Cargando usuarios...</div>
-      
+      <div class="table-header">
+        <div>
+          <h2>Directorio de Usuarios</h2>
+          <p>Control de roles, permisos y asignaciones por calle</p>
+        </div>
+        <div class="search-box">
+          <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input v-model="filtroBusqueda" type="text" placeholder="Buscar por Cédula o Nombre..." />
+        </div>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando registros desde Supabase...</p>
+      </div>
+
+      <div v-else-if="usuariosFiltrados.length === 0" class="empty-state">
+        <p>No se encontraron usuarios registrados con esa búsqueda.</p>
+      </div>
+
       <div v-else class="table-wrapper">
         <table class="custom-table">
           <thead>
             <tr>
-              <th>Cédula</th>
-              <th>Nombre</th>
-              <th>Cargo / Rol</th>
-              <th>Acción</th>
+              <th>Cédula (ID)</th>
+              <th>Nombre Completo</th>
+              <th>Calle / Sector</th>
+              <th>Rol / Cargo</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in usuarios" :key="user.id">
-              <td class="id-cell">V-{{ user.id }}</td>
-              <td>{{ user.nombre_familia }}</td>
-              <td>
-                <select 
-                  :value="user.id_cargo" 
-                  @change="cambiarCargo(user.id, $event.target.value)"
-                  class="select-cargo"
-                >
-                  <option value="1">1 - Administrador</option>
-                  <option value="2">2 - Jefe de Calle</option>
-                  <option value="3">3 - Familia</option>
-                </select>
+            <tr v-for="usuario in usuariosFiltrados" :key="usuario.id" class="table-row">
+              <td class="id-cell" data-label="Cédula (ID)">V-{{ usuario.id }}</td>
+              <td class="name-cell" data-label="Nombre completo">
+                <div class="avatar">{{ usuario.nombre_familia ? usuario.nombre_familia.charAt(0).toUpperCase() : 'U' }}</div>
+                <span class="family-name">{{ usuario.nombre_familia || 'Sin nombre' }}</span>
               </td>
-              <td>
-                <span class="status-ok">Registrado</span>
+              <td data-label="Calle / Sector">
+                <span class="badge-calle">{{ obtenerNombreCalle(usuario.id_calle) }}</span>
+              </td>
+              <td data-label="Rol / Cargo">
+                <span class="role-select" :class="'role-' + usuario.id_cargo">
+                  {{ obtenerNombreCargo(usuario.id_cargo) }}
+                </span>
+              </td>
+              <td data-label="Estado">
+                <span class="status-indicator" :class="{ active: usuario.activo }">
+                  <span class="status-dot"></span>
+                  {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+                </span>
               </td>
             </tr>
           </tbody>
@@ -48,44 +83,453 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../../composables/supabase.js'
 
 const usuarios = ref([])
+const calles = ref([])
+const cargos = ref([])
+const filtroBusqueda = ref('')
 const loading = ref(true)
 
 async function cargarUsuarios() {
   loading.value = true
-  const { data } = await supabase.from('familias').select('*')
-  if (data) usuarios.value = data
-  loading.value = false
+  try {
+    const { data: callesData } = await supabase.from('calles').select('*')
+    if (callesData) calles.value = callesData
+
+    const { data: cargosData } = await supabase.from('cargos').select('*')
+    if (cargosData) cargos.value = cargosData
+
+    const { data, error } = await supabase.from('familias').select('*')
+    if (!error && data) {
+      usuarios.value = data
+    }
+  } catch (e) {
+    console.error('Error cargando usuarios:', e)
+  } finally {
+    loading.value = false
+  }
 }
 
-async function cambiarCargo(idFamilia, nuevoCargoId) {
-  await supabase
-    .from('familias')
-    .update({ id_cargo: parseInt(nuevoCargoId) })
-    .eq('id', idFamilia)
+function obtenerNombreCalle(idCalle) {
+  const c = calles.value.find((item) => item.id_calle === idCalle)
+  return c ? c.nombre : `Calle ID ${idCalle}`
+}
+
+function obtenerNombreCargo(idCargo) {
+  const cargo = cargos.value.find((item) => item.id_cargo === idCargo)
+  if (cargo) return cargo.nombre
+  if (idCargo === 1) return 'Administrador'
+  if (idCargo === 2) return 'Jefe de Calle'
+  return 'Familia'
 }
 
 onMounted(cargarUsuarios)
+
+const usuariosFiltrados = computed(() => {
+  if (!filtroBusqueda.value.trim()) return usuarios.value
+  const query = filtroBusqueda.value.toLowerCase().trim()
+  return usuarios.value.filter(
+    (u) =>
+      String(u.id).includes(query) ||
+      (u.nombre_familia && u.nombre_familia.toLowerCase().includes(query))
+  )
+})
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-.admin-page { font-family: 'Poppins', sans-serif; color: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.header-banner { background: linear-gradient(135deg, rgba(0, 114, 206, 0.4), rgba(255, 122, 0, 0.2)); backdrop-filter: blur(16px); border: 1px solid rgba(0, 114, 206, 0.4); border-radius: 20px; padding: 1.8rem 2rem; }
-.badge { display: inline-block; background: rgba(0, 114, 206, 0.3); color: #38b6ff; border: 1px solid rgba(56, 182, 255, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; }
-.header-banner h1 { margin: 0; font-size: 1.6rem; }
-.header-banner p { margin: 0.3rem 0 0 0; color: #a0aec0; font-size: 0.9rem; }
-.table-card { background: rgba(15, 23, 36, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(50, 132, 209, 0.3); border-radius: 20px; padding: 1.5rem; }
-.custom-table { width: 100%; border-collapse: collapse; text-align: left; }
-.custom-table th { padding: 0.8rem 1rem; font-size: 0.8rem; color: #a0aec0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.custom-table td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-.id-cell { font-weight: 600; color: #38b6ff; }
-.select-cargo { background: #0f1724; border: 1px solid rgba(0, 114, 206, 0.5); color: #fff; padding: 6px 10px; border-radius: 8px; outline: none; font-family: 'Poppins', sans-serif; }
-.status-ok { color: #4ade80; font-size: 0.8rem; }
-.loading-state { text-align: center; padding: 3rem; color: #a0aec0; }
-.spinner { width: 30px; height: 30px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #0072ce; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 0.5rem auto; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+.admin-page { 
+  font-family: 'Plus Jakarta Sans', sans-serif; 
+  color: #0f172a; 
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: transparent !important;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.header-banner { 
+  background: #ffffff; 
+  border: 1px solid #e2e8f0; 
+  border-left: 6px solid #0072CE; 
+  border-radius: 18px; 
+  padding: 2rem 2.2rem; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.badge { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px; 
+  background: #eff6ff; 
+  color: #0072CE; 
+  border: 1px solid #dbeafe; 
+  padding: 5px 12px; 
+  border-radius: 20px; 
+  font-size: 0.75rem; 
+  font-weight: 600; 
+  margin-bottom: 0.5rem; 
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  background-color: #0072CE;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.header-banner h1 { 
+  margin: 0; 
+  font-size: 1.8rem; 
+  font-weight: 700; 
+  color: #0f172a; 
+  letter-spacing: -0.02em; 
+}
+
+.header-banner p { 
+  margin: 0.3rem 0 0 0; 
+  color: #64748b; 
+  font-size: 0.9rem; 
+}
+
+.action-btn { 
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0072CE; 
+  color: #ffffff; 
+  border: none; 
+  padding: 0.75rem 1.4rem; 
+  border-radius: 12px; 
+  font-weight: 600; 
+  font-size: 0.88rem;
+  cursor: pointer; 
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.action-btn:hover:not(:disabled) { 
+  background: #005aa3; 
+  transform: translateY(-1px); 
+}
+
+.action-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.action-btn .icon.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { 
+  100% { transform: rotate(360deg); } 
+}
+
+.table-card { 
+  background: #ffffff; 
+  border: 1px solid #e2e8f0; 
+  border-radius: 18px; 
+  padding: 1.6rem; 
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03); 
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.table-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.table-header p {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.search-box {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+}
+
+.search-box input {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 0.65rem 1rem 0.65rem 2.4rem;
+  border-radius: 10px;
+  color: #0f172a;
+  outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.search-box input:focus {
+  border-color: #0072CE;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+}
+
+.table-wrapper { 
+  overflow-x: auto; 
+}
+
+.custom-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  text-align: left; 
+}
+
+.custom-table th { 
+  padding: 0.85rem 1rem; 
+  font-size: 0.72rem; 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em; 
+  color: #64748b; 
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0; 
+  font-weight: 600; 
+}
+
+.custom-table td { 
+  padding: 1rem; 
+  border-bottom: 1px solid #f1f5f9; 
+  font-size: 0.88rem; 
+  color: #334155; 
+}
+
+.table-row { 
+  transition: background-color 0.15s ease; 
+}
+
+.table-row:hover { 
+  background-color: #f8fafc; 
+}
+
+.id-cell { 
+  font-weight: 600; 
+  color: #0072CE; 
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.family-name {
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  background-color: #eff6ff;
+  color: #0072CE;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.badge-calle { 
+  background: #f1f5f9; 
+  color: #475569; 
+  border: 1px solid #e2e8f0; 
+  padding: 4px 10px; 
+  border-radius: 6px; 
+  font-size: 0.8rem; 
+  font-weight: 500; 
+}
+
+.role-select {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.role-select.role-1 {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.role-select.role-2 {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.role-select.role-3 {
+  background: #eff6ff;
+  color: #0072CE;
+  border: 1px solid #bfdbfe;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.status-indicator.active {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background-color: currentColor;
+  border-radius: 50%;
+}
+
+.loading-state, .empty-state { 
+  text-align: center; 
+  padding: 3rem; 
+  color: #64748b; 
+}
+
+.spinner { 
+  width: 32px; 
+  height: 32px; 
+  border: 3px solid #e2e8f0; 
+  border-top-color: #0072CE; 
+  border-radius: 50%; 
+  animation: spin 1s infinite linear; 
+  margin: 0 auto 1rem auto; 
+}
+
+@media (max-width: 639.98px) {
+  .header-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 18px 16px;
+    border-left-width: 4px;
+  }
+
+  .header-banner h1 {
+    font-size: 1.35rem;
+  }
+
+  .action-btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .table-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 1rem;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .search-box input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .name-cell {
+    gap: 8px;
+  }
+
+  .role-select {
+    white-space: normal;
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-page {
+    gap: 1.5rem;
+  }
+
+  .header-banner {
+    padding: 1.7rem 1.9rem;
+  }
+
+  .table-card {
+    padding: 1.4rem;
+  }
+
+  .action-btn {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-page {
+    gap: 1.75rem;
+  }
+
+  .header-banner h1 {
+    font-size: 1.8rem;
+  }
+
+  .table-card {
+    padding: 1.6rem;
+  }
+}
 </style>
