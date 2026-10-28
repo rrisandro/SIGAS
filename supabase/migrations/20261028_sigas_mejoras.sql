@@ -1414,12 +1414,15 @@ begin
 end $$;
 
 -- ============================================================================
--- 17. LIMPIEZA DE TABLAS RETIRADAS
---    Si ya habías ejecutado una versión anterior de esta migración, se
---    eliminan las tablas que quedaron en desuso. La auditoría se calcula
---    desde ciclos_distribucion + pedidos.
+-- 17. TABLAS RETIRADAS (NO SE ELIMINAN AUTOMÁTICAMENTE)
+--    La auditoría se calcula desde ciclos_distribucion + pedidos y el
+--    inventario físico ya no se usa. Si en tu base existieran las tablas
+--    bombonas o auditoria de una versión anterior, NO se borran aquí para
+--    evitar cualquier pérdida de información.
+--
+--    Si deseas eliminarlas, haz primero un respaldo y ejecuta por separado:
+--      -- drop table if exists public.bombonas cascade;
+--      -- drop table if exists public.auditoria cascade;
 -- ============================================================================
-drop table if exists public.bombonas cascade;
-drop table if exists public.auditoria cascade;
 
 commit;
