@@ -75,6 +75,11 @@ const router = createRouter({
           component: () => import('../views/jefe/EntregasView.vue'),
           meta: { role: 'jefe' },
         },
+        {
+          path: 'jefe/familias',
+          component: () => import('../views/jefe/FamiliasView.vue'), 
+          meta: {role:'jefe'},
+        },
 
         { path: 'familia', redirect: '/familia/dashboard' },
         {

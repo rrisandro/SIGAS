@@ -161,11 +161,9 @@ function openCreate() {
   showForm.value = true
 }
 
-// 2. Guardar nuevo ciclo
+// 2. Guardar nuevo ciclo enviando id_calle directamente (soporta NULL)
 async function save() {
   if (!form.nombre) return
-
-  const calleAEnviar = form.id_calle || (listaCalles.value.length > 0 ? listaCalles.value[0].id_calle : 1)
 
   guardando.value = true
   errorMsg.value = ''
@@ -175,7 +173,7 @@ async function save() {
     .insert([
       {
         nombre_ciclo: form.nombre,
-        id_calle: calleAEnviar,
+        id_calle: form.id_calle, // Envía null si se eligió "Todas las calles"
         estado: 'activo',
         fecha_inicio: new Date().toISOString()
       }
