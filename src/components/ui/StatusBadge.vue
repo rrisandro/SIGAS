@@ -18,6 +18,8 @@ const map = {
   entregado: { label: 'Entregado', class: 'bg-emerald-100 text-emerald-800' },
   rechazado: { label: 'Rechazado', class: 'bg-rose-100 text-rose-800' },
   completado: { label: 'Completado', class: 'bg-emerald-100 text-emerald-800' },
+  cerrado: { label: 'Cerrado', class: 'bg-emerald-100 text-emerald-800' },
+  sin_estado: { label: 'Sin estado', class: 'bg-gray-100 text-gray-600' },
   en_progreso: { label: 'En progreso', class: 'bg-blue-100 text-blue-800' },
   planificado: { label: 'Planificado', class: 'bg-sky-100 text-sky-800' },
   activo: { label: 'Activo', class: 'bg-emerald-100 text-emerald-800' },
