@@ -154,10 +154,23 @@ const form = ref({
 async function cargarFamilias() {
   loading.value = true
   try {
+<<<<<<< HEAD
     const { data: callesData } = await supabase.from('calles').select('*').order('nombre')
     if (callesData) calles.value = callesData
 
     const { data, error } = await supabase.from('familias').select('*').order('id', { ascending: true })
+=======
+    const { data: callesData } = await supabase
+      .from('calles')
+      .select('*')
+      .eq('is_deleted', false)
+    if (callesData) calles.value = callesData
+
+    const { data, error } = await supabase
+      .from('familias')
+      .select('*')
+      .eq('is_deleted', false)
+>>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
     if (!error && data) {
       familias.value = data
     }

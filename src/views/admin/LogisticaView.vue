@@ -133,6 +133,7 @@ async function fetchDatos() {
     .from('calles')
     .select('id_calle, nombre')
     .eq('activo', true)
+    .eq('is_deleted', false)
     .order('nombre')
   
   listaCalles.value = callesData || []

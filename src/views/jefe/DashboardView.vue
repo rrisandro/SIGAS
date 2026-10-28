@@ -141,11 +141,23 @@ async function cargarDatosDashboardJefe() {
         return
       }
 
+<<<<<<< HEAD
       // Guardamos la lista de IDs de calles
       const idsCalles = callesAsignadas.map(c => c.id_calle)
       
       // Formateamos el nombre para el título (Ej: "Calle Bolívar, Calle Principal")
       nombreCalle.value = callesAsignadas.map(c => c.nombre).join(', ')
+=======
+  if (user) {
+    const { data: jefeData, error } = await supabase
+      .from('jefe_de_calle')
+      .select('*, calle:calles(nombre)')
+      .eq('auth_id', user.id)
+      .eq('activo', true)
+      .eq('is_deleted', false)
+      .limit(1)
+      .maybeSingle()
+>>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
 
       // 4. Traer todas las familias pertenecientes a cualquiera de sus calles asignadas
       const { data: familiasData } = await supabase

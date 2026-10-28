@@ -23,15 +23,15 @@
     </div>
 
     <div class="app-header__actions">
-      <!-- CAMPANA DE NOTIFICACIONES CON AUDITORÍA REAL DE SUPABASE -->
-      <div class="notifications-wrapper">
+      <div ref="notificationsRef" class="notifications-wrapper">
         <button
           type="button"
           class="header-icon-btn notification-btn"
           :class="{ active: mostrarNotificaciones }"
-          aria-label="Historial de auditoría y cambios"
-          title="Historial de Auditoría y Cambios"
+          aria-label="Notificaciones"
+          title="Notificaciones"
           :aria-expanded="mostrarNotificaciones"
+          aria-controls="notifications-dropdown"
           @click="toggleNotificaciones"
         >
           <svg viewBox="0 0 24 24" class="notification-icon" aria-hidden="true">
@@ -40,61 +40,123 @@
               d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"
             />
           </svg>
-          <span v-if="notificacionesNoLeidas > 0" class="notification-badge">
-            {{ notificacionesNoLeidas }}
+          <span v-if="noLeidas > 0" class="notification-badge" aria-live="polite">
+            {{ noLeidas > 99 ? '99+' : noLeidas }}
           </span>
+          <span v-if="noLeidas > 0" class="notification-ping" aria-hidden="true" />
         </button>
 
-        <!-- PANEL DESPLEGABLE DE AUDITORÍA -->
-        <div v-if="mostrarNotificaciones" class="notifications-dropdown">
-          <div class="dropdown-header">
-            <div>
-              <h3>Auditoría de Cambios</h3>
-              <p>Registro de actividad del sistema</p>
-            </div>
-            <button type="button" class="btn-clear" @click="cargarAuditoriaReal">
-              Actualizar
-            </button>
-          </div>
-
-          <div class="dropdown-body">
-            <div v-if="loading" class="loading-notif">
-              Cargando reportes de auditoría...
-            </div>
-
-            <template v-else>
-              <div
-                v-for="item in listaAuditoria"
-                :key="item.id || item.id_auditoria"
-                class="notification-item"
-                :class="{ unread: !item.leida }"
-                @click="item.leida = true"
-              >
-                <div class="notif-icon audit">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      fill="currentColor"
-                      d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v-2zm-3-5V3.5L18.5 9H13z"
-                    />
-                  </svg>
-                </div>
-                <div class="notif-content">
-                  <p class="notif-title">{{ item.accion || 'Acción Registrada' }}</p>
-                  <p class="notif-desc">{{ item.descripcion || 'Sin detalles adicionales' }}</p>
-                  <span class="notif-time">
-                    <strong>{{ item.usuario || item.autor || 'Administrador' }}</strong>
-                    <span aria-hidden="true"> · </span>
-                    {{ item.fecha ? new Date(item.fecha).toLocaleString('es-VE') : 'Reciente' }}
+        <Transition name="notif-dropdown">
+          <div
+            v-if="mostrarNotificaciones"
+            id="notifications-dropdown"
+            class="notifications-dropdown"
+            role="dialog"
+            aria-label="Panel de notificaciones"
+          >
+            <div class="dropdown-header">
+              <div>
+                <h3>Notificaciones</h3>
+                <p>
+                  {{ noLeidas > 0 ? `${noLeidas} sin leer` : 'Todo al día' }}
+                  <span class="live-label">
+                    <span class="live-dot" :class="{ offline: realtimeStatus !== 'SUBSCRIBED' }" />
+                    {{ realtimeStatus === 'SUBSCRIBED' ? 'Tiempo real' : 'Conectando' }}
                   </span>
-                </div>
+                </p>
+              </div>
+              <div class="dropdown-header-actions">
+                <button
+                  v-if="noLeidas > 0"
+                  type="button"
+                  class="btn-clear"
+                  :disabled="marcandoTodas"
+                  @click="marcarTodas"
+                >
+                  {{ marcandoTodas ? 'Marcando…' : 'Marcar leídas' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-close-notif"
+                  aria-label="Cerrar notificaciones"
+                  @click="mostrarNotificaciones = false"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div class="dropdown-body">
+              <div v-if="loading" class="loading-notif">
+                <span class="notif-spinner" aria-hidden="true" />
+                Cargando notificaciones…
               </div>
 
-              <div v-if="listaAuditoria.length === 0" class="empty-notif">
-                No hay registros de auditoría en la base de datos.
-              </div>
-            </template>
+              <p v-else-if="error" class="notif-error" role="alert">{{ error }}</p>
+
+              <template v-else>
+                <button
+                  v-for="item in notificaciones"
+                  :key="item.id_notificacion"
+                  type="button"
+                  class="notification-item"
+                  :class="{ unread: !item.leida }"
+                  @click="abrirNotificacion(item)"
+                >
+                  <span class="notif-icon" :class="`notif-icon--${tipoIcono(item.tipo)}`" aria-hidden="true">
+                    <svg v-if="tipoIcono(item.tipo) === 'registro'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 8v6m3-3h-6" />
+                    </svg>
+                    <svg v-else-if="tipoIcono(item.tipo) === 'aprobado'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5" />
+                    </svg>
+                    <svg v-else-if="tipoIcono(item.tipo) === 'rechazado'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                    <svg v-else-if="tipoIcono(item.tipo) === 'pedido'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m16 16 2 2 4-4" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 21h4" />
+                    </svg>
+                  </span>
+
+                  <span class="notif-content">
+                    <span class="notif-title">{{ item.titulo || 'Notificación' }}</span>
+                    <span class="notif-desc">{{ item.mensaje || 'Sin detalles adicionales.' }}</span>
+                    <span class="notif-time">{{ formatearFecha(item.created_at) }}</span>
+                  </span>
+
+                  <span v-if="!item.leida" class="notif-unread-dot" aria-label="No leída" />
+                </button>
+
+                <div v-if="notificaciones.length === 0" class="empty-notif">
+                  <span class="empty-notif__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 21h4" />
+                    </svg>
+                  </span>
+                  <strong>No tienes notificaciones</strong>
+                  <span>Aquí aparecerán los avisos de registros, aprobaciones y solicitudes.</span>
+                </div>
+              </template>
+            </div>
+
+            <div class="dropdown-footer">
+              <span>Actualizado automáticamente</span>
+              <span class="footer-live">
+                <span class="live-dot" :class="{ offline: realtimeStatus !== 'SUBSCRIBED' }" />
+                Supabase Realtime
+              </span>
+            </div>
           </div>
-        </div>
+        </Transition>
       </div>
 
       <div class="user-meta">
@@ -119,11 +181,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Menu, LogOut, Flame } from '../icons.js'
 import { useAuth } from '../../composables/useAuth.js'
-import { supabase } from '../../composables/supabase.js'
+import { useNotificaciones } from '../../composables/useNotificaciones.js'
 import { menuByRole } from '../../data/menu.js'
 
 defineEmits(['toggle-sidebar'])
@@ -132,9 +194,22 @@ const route = useRoute()
 const router = useRouter()
 const { currentUser, logout } = useAuth()
 
+const {
+  notificaciones,
+  noLeidas,
+  loading,
+  error,
+  realtimeStatus,
+  iniciar,
+  detener,
+  cargarNotificaciones,
+  marcarLeida,
+  marcarTodasLeidas,
+} = useNotificaciones()
+
 const mostrarNotificaciones = ref(false)
-const loading = ref(false)
-const listaAuditoria = ref([])
+const marcandoTodas = ref(false)
+const notificationsRef = ref(null)
 
 const title = computed(() => {
   const rol = currentUser.value?.rol
@@ -157,50 +232,74 @@ const userInitial = computed(() => {
   return name ? name.charAt(0).toUpperCase() : 'U'
 })
 
-const notificacionesNoLeidas = computed(() => {
-  return listaAuditoria.value.filter((item) => !item.leida).length
-})
-
 function toggleNotificaciones() {
   mostrarNotificaciones.value = !mostrarNotificaciones.value
-  if (mostrarNotificaciones.value) {
-    cargarAuditoriaReal()
+  if (mostrarNotificaciones.value) cargarNotificaciones()
+}
+
+function handleOutsideClick(event) {
+  if (!mostrarNotificaciones.value) return
+  if (notificationsRef.value && !notificationsRef.value.contains(event.target)) {
+    mostrarNotificaciones.value = false
   }
 }
 
-async function cargarAuditoriaReal() {
-  loading.value = true
-  try {
-    const { data, error } = await supabase
-      .from('auditoria')
-      .select('*')
-      .order('fecha', { ascending: false })
-      .limit(6)
-
-    if (!error && data) {
-      listaAuditoria.value = data.map((item) => ({
-        ...item,
-        leida: false,
-      }))
-    }
-  } catch (e) {
-    console.error('Error cargando auditoría:', e)
-  } finally {
-    loading.value = false
+function handleKeydown(event) {
+  if (event.key === 'Escape' && mostrarNotificaciones.value) {
+    mostrarNotificaciones.value = false
   }
+}
+
+async function marcarTodas() {
+  marcandoTodas.value = true
+  await marcarTodasLeidas()
+  marcandoTodas.value = false
+}
+
+async function abrirNotificacion(item) {
+  await marcarLeida(item.id_notificacion)
+
+  if (item.tipo === 'registro_familia' && currentUser.value?.rol === 'jefe') {
+    mostrarNotificaciones.value = false
+    router.push('/jefe/registros')
+    return
+  }
+
+  if (
+    ['registro_aprobado', 'registro_rechazado'].includes(item.tipo) &&
+    currentUser.value?.rol === 'familia'
+  ) {
+    mostrarNotificaciones.value = false
+    router.push('/familia/dashboard')
+  }
+}
+
+function tipoIcono(tipo) {
+  if (tipo === 'registro_familia' || tipo === 'registro') return 'registro'
+  if (tipo === 'registro_aprobado' || tipo === 'aprobado') return 'aprobado'
+  if (tipo === 'registro_rechazado' || tipo === 'rechazado') return 'rechazado'
+  if (tipo === 'pedido' || tipo === 'solicitud') return 'pedido'
+  return 'sistema'
+}
+
+function formatearFecha(fecha) {
+  if (!fecha) return 'Ahora'
+  const date = new Date(fecha)
+  if (Number.isNaN(date.getTime())) return 'Ahora'
+
+  const diff = Date.now() - date.getTime()
+  if (diff < 60_000) return 'Ahora mismo'
+  if (diff < 3_600_000) return `Hace ${Math.floor(diff / 60_000)} min`
+  if (diff < 86_400_000) return `Hace ${Math.floor(diff / 3_600_000)} h`
+  if (diff < 604_800_000) return `Hace ${Math.floor(diff / 86_400_000)} d`
+
+  return date.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })
 }
 
 function handleLogout() {
-  try {
-    logout()
-  } catch (e) {
-    console.error('Error en logout:', e)
-  } finally {
-    localStorage.removeItem('user')
-    localStorage.removeItem('supabase.auth.token')
-    mostrarNotificaciones.value = false
-    router.push('/login')
-  }
+  mostrarNotificaciones.value = false
+  logout()
+  router.push('/login')
 }
 
 watch(
@@ -211,7 +310,15 @@ watch(
 )
 
 onMounted(() => {
-  cargarAuditoriaReal()
+  iniciar()
+  document.addEventListener('click', handleOutsideClick)
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  detener()
+  document.removeEventListener('click', handleOutsideClick)
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -356,6 +463,25 @@ onMounted(() => {
   line-height: 1;
 }
 
+.notification-ping {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  opacity: 0.4;
+  animation: notifPing 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes notifPing {
+  0% { transform: scale(0.8); opacity: 0.45; }
+  70% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
 .notifications-dropdown {
   position: fixed;
   top: calc(var(--header-height) + 6px);
@@ -374,43 +500,103 @@ onMounted(() => {
 
 .dropdown-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
-  padding: 12px 16px;
-  background: var(--color-bg);
+  padding: 13px 14px;
+  background: linear-gradient(135deg, #f0f9ff, #ffffff);
   border-bottom: 1px solid var(--color-border-light);
 }
 
 .dropdown-header h3 {
   margin: 0;
   color: var(--color-heading);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 700;
 }
 
 .dropdown-header p {
-  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0 0;
   color: var(--color-muted);
   font-size: 0.72rem;
 }
 
-.btn-clear {
+.live-label,
+.footer-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #0284c7;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.live-dot.offline {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.dropdown-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   flex-shrink: 0;
-  min-height: 36px;
-  padding: 0 10px;
+}
+
+.btn-clear {
+  min-height: 34px;
+  padding: 0 9px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 9px;
   background: #ffffff;
   color: var(--color-primary-darker);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.btn-clear:hover {
+.btn-clear:hover:not(:disabled) {
   background: var(--color-primary-soft);
+}
+
+.btn-clear:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-close-notif {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-close-notif:hover {
+  background: var(--color-bg);
+  color: var(--color-heading);
 }
 
 .dropdown-body {
@@ -420,17 +606,52 @@ onMounted(() => {
 
 .loading-notif,
 .empty-notif {
-  padding: 28px 16px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 30px 18px;
   color: var(--color-muted);
   font-size: 0.82rem;
   text-align: center;
 }
 
+.notif-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e2e8f0;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.notif-error {
+  margin: 12px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .notification-item {
+  position: relative;
   display: flex;
-  gap: 12px;
-  padding: 12px 16px;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
   border-bottom: 1px solid var(--color-border-light);
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: background-color var(--transition-fast);
 }
@@ -440,11 +661,11 @@ onMounted(() => {
 }
 
 .notification-item:hover {
-  background: var(--color-bg);
+  background: #f8fafc;
 }
 
 .notification-item.unread {
-  background: var(--color-primary-soft);
+  background: linear-gradient(90deg, #f0f9ff, #ffffff);
 }
 
 .notif-icon {
@@ -452,41 +673,118 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.notif-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.notif-icon--registro {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.notif-icon--aprobado {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.notif-icon--rechazado {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.notif-icon--pedido {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.notif-content {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 12px;
+}
+
+.notif-title {
+  color: var(--color-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.notif-desc {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.notif-time {
+  margin-top: 2px;
+  color: var(--color-muted-light);
+  font-size: 0.66rem;
+}
+
+.notif-unread-dot {
+  position: absolute;
+  top: 17px;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.empty-notif {
+  padding: 34px 22px;
+}
+
+.empty-notif__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
   background: var(--color-primary-soft);
   color: var(--color-primary-darker);
 }
 
-.notif-icon svg {
-  width: 17px;
-  height: 17px;
+.empty-notif__icon svg {
+  width: 23px;
+  height: 23px;
 }
 
-.notif-content {
-  min-width: 0;
-}
-
-.notif-title {
-  margin: 0;
+.empty-notif strong {
   color: var(--color-heading);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.85rem;
 }
 
-.notif-desc {
-  margin: 2px 0 0;
-  color: var(--color-muted);
-  font-size: 0.76rem;
-  line-height: 1.4;
+.empty-notif span:last-child {
+  max-width: 260px;
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
-.notif-time {
-  display: block;
-  margin-top: 5px;
-  color: var(--color-muted);
-  font-size: 0.68rem;
+.dropdown-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border-top: 1px solid var(--color-border-light);
+  background: #f9fafb;
+  color: var(--color-muted-light);
+  font-size: 0.66rem;
 }
 
 .user-meta {
@@ -538,6 +836,17 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.notif-dropdown-enter-active,
+.notif-dropdown-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.notif-dropdown-enter-from,
+.notif-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
 @media (max-width: 359.98px) {
   .brand-text {
     display: none;
@@ -582,8 +891,8 @@ onMounted(() => {
     top: calc(100% + 8px);
     right: 0;
     left: auto;
-    width: 360px;
-    max-height: min(480px, calc(100dvh - 96px));
+    width: 390px;
+    max-height: min(540px, calc(100dvh - 96px));
   }
 }
 
@@ -610,6 +919,18 @@ onMounted(() => {
 
   .logout-btn {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-ping,
+  .notif-spinner {
+    animation: none;
+  }
+
+  .notif-dropdown-enter-active,
+  .notif-dropdown-leave-active {
+    transition: none;
   }
 }
 </style>

@@ -76,6 +76,7 @@ onMounted(async () => {
         .from('familias')
         .select('id')
         .eq('auth_id', user.id)
+        .eq('is_deleted', false)
         .maybeSingle()
 
       if (familiaData && !familiaError) {

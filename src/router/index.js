@@ -13,6 +13,12 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
+      path: '/restablecer-password',
+      name: 'reset-password',
+      component: () => import('../views/ResetPasswordView.vue'),
+      meta: { guest: true, recovery: true },
+    },
+    {
       path: '/',
       component: AppLayout,
       meta: { requiresAuth: true },
@@ -49,6 +55,11 @@ const router = createRouter({
           meta: { role: 'admin' },
         },
         {
+          path: 'admin/bombonas',
+          component: () => import('../views/admin/BombonasView.vue'),
+          meta: { role: 'admin' },
+        },
+        {
           path: 'admin/auditoria',
           component: () => import('../views/admin/AuditoriaView.vue'),
           meta: { role: 'admin' },
@@ -63,6 +74,11 @@ const router = createRouter({
         {
           path: 'jefe/bandeja',
           component: () => import('../views/jefe/BandejaView.vue'),
+          meta: { role: 'jefe' },
+        },
+        {
+          path: 'jefe/registros',
+          component: () => import('../views/jefe/RegistrosView.vue'),
           meta: { role: 'jefe' },
         },
         {
@@ -109,6 +125,10 @@ const router = createRouter({
 router.beforeEach((to) => {
   loadSession()
   const { isAuthenticated, currentUser } = useAuth()
+
+  // Las rutas de recuperación necesitan abrirse incluso con la sesión
+  // temporal que Supabase crea al validar el enlace del correo.
+  if (to.meta.recovery) return true
 
   // 1. Manejo de la raíz del sistema (/)
   if (to.path === '/' || to.path === '') {

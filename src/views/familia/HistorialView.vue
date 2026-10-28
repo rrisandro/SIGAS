@@ -155,7 +155,8 @@ onMounted(async () => {
       .from('familias')
       .select('id')
       .eq('auth_id', user.id)
-      .single()
+      .eq('is_deleted', false)
+      .maybeSingle()
 
     if (familiaData) {
       const { data: pedidosData, error: pedidosError } = await supabase

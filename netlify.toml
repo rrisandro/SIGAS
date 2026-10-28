@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Fallback SPA: cualquier ruta es manejada por Vue Router.
+# El archivo public/_redirects contiene la misma regla para Netlify.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

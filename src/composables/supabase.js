@@ -1,6 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = 'https://mmrhawezilptrlixgmno.supabase.co'
-const supabaseAnonKey = 'sb_publishable_D_MFZXE1Sq6tARzAs72Daw_PkozXOwD'
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Compatibilidad: el cliente único vive en src/lib/supabase.js.
+// Evita crear dos instancias de Supabase con claves distintas.
+export { supabase, SITE_URL, PASSWORD_RESET_REDIRECT } from '../lib/supabase.js'

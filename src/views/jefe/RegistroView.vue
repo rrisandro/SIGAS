@@ -114,8 +114,13 @@ const picosDisponibles = [
 // Computed para filtrar familias
 const familiasDisponibles = computed(() => {
   if (!familias.value) return []
-  const filtradas = familias.value.filter(f => !familiasConPedido.value.includes(String(f.id)))
-  console.log('🔍 Familias Totales:', familias.value.length, '| Disponibles:', filtradas.length)
+  const filtradas = familias.value.filter((f) => {
+    if (familiasConPedido.value.includes(String(f.id))) return false
+    if (String(f.estado || 'aprobado').toLowerCase() !== 'aprobado') return false
+    if (f.activo === false) return false
+    if (!jefe.value?.id_calle) return true
+    return Number(f.id_calle) === Number(jefe.value.id_calle)
+  })
   return filtradas
 })
 
@@ -165,17 +170,28 @@ onMounted(async () => {
       .from('calles')
       .select('*')
       .eq('activo', true)
+      .eq('is_deleted', false)
       .order('nombre')
     calles.value = callesData || []
 
     // 4. Datos del jefe
-    if (currentUser.value?.id) {
+    if (currentUser.value?.authId) {
       const { data: jefeData } = await supabase
         .from('jefe_de_calle')
         .select('*')
-        .eq('auth_id', currentUser.value.id)
-        .single()
+        .eq('auth_id', currentUser.value.authId)
+        .eq('activo', true)
+        .eq('is_deleted', false)
+        .limit(1)
+        .maybeSingle()
       jefe.value = jefeData
+
+      // El Jefe de Calle solo registra solicitudes para su propia calle.
+      if (jefeData?.id_calle) {
+        calles.value = calles.value.filter(
+          (calle) => Number(calle.id_calle) === Number(jefeData.id_calle)
+        )
+      }
     }
   } catch (err) {
     console.error('❌ Error general:', err)

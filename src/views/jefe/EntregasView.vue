@@ -214,6 +214,7 @@ async function cargarDatos() {
       familias (
         id,
         nombre_familia,
+        is_deleted,
         calles (id_calle, nombre)
       ),
       ciclos_distribucion (
@@ -224,7 +225,9 @@ async function cargarDatos() {
     .order('id_pedido', { ascending: false })
 
   if (!errPedidos) {
-    listaPedidos.value = pedidosData || []
+    listaPedidos.value = (pedidosData || []).filter(
+      (pedido) => !pedido.familias?.is_deleted
+    )
   }
 
   // 3. Cargar el historial de entregas

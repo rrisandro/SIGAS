@@ -101,7 +101,11 @@ const estadoCalle = ref(true)
 
 async function cargarCalles() {
   loading.value = true
-  const { data } = await supabase.from('calles').select('*').order('id_calle', { ascending: true })
+  const { data } = await supabase
+    .from('calles')
+    .select('*')
+    .eq('is_deleted', false)
+    .order('id_calle', { ascending: true })
   if (data) calles.value = data
   loading.value = false
 }

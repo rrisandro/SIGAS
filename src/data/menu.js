@@ -6,11 +6,13 @@ export const menuByRole = {
     { path: 'familias', label: 'Familias', icon: 'Users' },
     { path: 'usuarios', label: 'Usuarios', icon: 'Shield' },
     { path: 'logistica', label: 'Logística', icon: 'Truck' },
+    { path: 'bombonas', label: 'Bombonas', icon: 'PackageCheck' },
     { path: 'auditoria', label: 'Auditoría', icon: 'FileText' },
   ],
   jefe: [
     { path: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
     { path: 'bandeja', label: 'Bandeja de Solicitudes', icon: 'Inbox' },
+    { path: 'registros', label: 'Registros de Familias', icon: 'UserCheck' },
     { path: 'registro', label: 'Registro Presencial', icon: 'ClipboardList' },
     { path: 'entregas', label: 'Control de Entregas', icon: 'PackageCheck' },
     { path: 'familias', label: 'Familias', icon: 'Users' },

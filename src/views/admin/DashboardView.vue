@@ -251,14 +251,28 @@ async function cargarDatos() {
   loading.value = true
   paginaActual.value = 1
   try {
-    const { data: callesData } = await supabase.from('calles').select('*').eq('activo', true)
+    const { data: callesData } = await supabase
+      .from('calles')
+      .select('*')
+      .eq('activo', true)
+      .eq('is_deleted', false)
     if (callesData) calles.value = callesData
 
     const { data: cargosData } = await supabase.from('cargos').select('*')
     if (cargosData) cargos.value = cargosData
 
+<<<<<<< HEAD
     const { data: familiasData } = await supabase.from('familias').select('*')
     if (familiasData) familias.value = familiasData
+=======
+    const { data: familiasData, error } = await supabase
+      .from('familias')
+      .select('*')
+      .eq('is_deleted', false)
+    if (!error && familiasData) {
+      familias.value = familiasData
+    }
+>>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
 
     // 1. Consultar el ciclo que esté activo
     const { data: ciclos } = await supabase

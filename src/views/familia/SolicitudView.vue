@@ -183,6 +183,7 @@ async function cargarEstadoFormulario() {
       .from('calles')
       .select('*')
       .eq('activo', true)
+      .eq('is_deleted', false)
       .order('nombre')
     calles.value = callesData || []
 
@@ -195,6 +196,7 @@ async function cargarEstadoFormulario() {
         .from('familias')
         .select('id, id_calle')
         .eq('auth_id', user.id)
+        .eq('is_deleted', false)
         .maybeSingle()
 
       if (familiaData && !dbError) {
