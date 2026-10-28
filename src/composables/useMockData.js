@@ -79,17 +79,6 @@ const usuarios = ref([
   { id: 9, username: 'familia.ramirez', password: 'familia123', rol: 'familia', nombre: 'Familia Ramírez', entidadId: 6, activo: true },
 ])
 
-const auditoriaLogs = ref([
-  { id: 1, fecha: '2025-01-15 09:30:00', usuario: 'admin', accion: 'Crear', entidad: 'Ciclo de Distribución', detalle: 'Ciclo Enero S2 creado', ip: '192.168.1.100' },
-  { id: 2, fecha: '2025-01-15 10:15:00', usuario: 'carlos.mendoza', accion: 'Aprobar', entidad: 'Solicitud #2', detalle: 'Solicitud de Familia García aprobada', ip: '192.168.1.105' },
-  { id: 3, fecha: '2025-01-14 14:20:00', usuario: 'admin', accion: 'Modificar', entidad: 'Jefe de Calle', detalle: 'Teléfono actualizado - Pedro López', ip: '192.168.1.100' },
-  { id: 4, fecha: '2025-01-14 16:45:00', usuario: 'jose.rodriguez', accion: 'Registrar', entidad: 'Solicitud Presencial', detalle: 'Solicitud para Familia Torres', ip: '192.168.1.110' },
-  { id: 5, fecha: '2025-01-13 08:00:00', usuario: 'admin', accion: 'Desactivar', entidad: 'Usuario', detalle: 'Usuario pedro.lopez dado de baja', ip: '192.168.1.100' },
-  { id: 6, fecha: '2025-01-13 11:30:00', usuario: 'familia.perez', accion: 'Crear', entidad: 'Solicitud', detalle: 'Nueva solicitud de bombona 18Kg', ip: '192.168.1.120' },
-  { id: 7, fecha: '2025-01-12 15:00:00', usuario: 'admin', accion: 'Exportar', entidad: 'Reporte', detalle: 'Planilla de distribución generada', ip: '192.168.1.100' },
-  { id: 8, fecha: '2025-01-12 09:10:00', usuario: 'maria.gonzalez', accion: 'Rechazar', entidad: 'Solicitud #5', detalle: 'Familia Hernández - Ya recibió este mes', ip: '192.168.1.108' },
-])
-
 function nextId(collection) {
   return collection.value.length ? Math.max(...collection.value.map((i) => i.id)) + 1 : 1
 }
@@ -191,20 +180,6 @@ function updateCiclo(id, data) {
   return item
 }
 
-function addAuditoria({ usuario, accion, entidad, detalle }) {
-  const item = {
-    id: nextId(auditoriaLogs),
-    fecha: new Date().toISOString().replace('T', ' ').slice(0, 19),
-    usuario,
-    accion,
-    entidad,
-    detalle,
-    ip: '192.168.1.' + Math.floor(Math.random() * 200 + 100),
-  }
-  auditoriaLogs.value.unshift(item)
-  return item
-}
-
 function getCalleNombre(id) {
   return findById(calles, id)?.nombre || '—'
 }
@@ -235,7 +210,6 @@ function useMockData() {
     solicitudes,
     ciclosDistribucion,
     usuarios,
-    auditoriaLogs,
     findById,
     toggleActivo,
     addCalle,
@@ -250,7 +224,6 @@ function useMockData() {
     updateSolicitudEstatus,
     addCiclo,
     updateCiclo,
-    addAuditoria,
     getCalleNombre,
     getFamiliaNombre,
     getTipoNombre,
