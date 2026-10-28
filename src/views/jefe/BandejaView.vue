@@ -1,10 +1,4 @@
 <template>
-<<<<<<< HEAD
-  <div class="space-y-6">
-    <div>
-      <h2 class="text-xl font-medium text-gray-700">Bandeja de Solicitudes</h2>
-      <p class="text-sm text-gray-500">Acepta o rechaza solicitudes de tu calle</p>
-=======
   <div class="bandeja-page">
     <header class="page-banner">
       <div class="banner-copy">
@@ -29,7 +23,6 @@
     <div v-if="!loading && !jefe" class="alert alert--warning" role="alert">
       <strong>No se encontró tu perfil de Jefe de Calle.</strong>
       Pide a un administrador que asocie tu cuenta a una calle para recibir solicitudes.
->>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
     </div>
 
     <div v-if="!loading && jefe && !calleId" class="alert alert--warning" role="alert">
@@ -149,40 +142,6 @@
       :confirm-disabled="confirmAction === 'rechazar' && !motivo.trim()"
       @confirm="ejecutarConfirmacion"
     >
-<<<<<<< HEAD
-      <template #cell-estatus="{ row }">
-        <StatusBadge :status="row.estatus" />
-      </template>
-      <template #actions="{ row }">
-        <template v-if="row.estatus === 'pendiente'">
-          <BaseButton size="sm" variant="success" @click="openAccept(row)">Aceptar</BaseButton>
-          <BaseButton size="sm" variant="danger" @click="openReject(row)">Rechazar</BaseButton>
-        </template>
-        <span v-else-if="row.estatus === 'aceptado'" class="text-xs text-blue-600 font-medium">Aceptado</span>
-        <span v-else class="text-xs text-gray-500">Sin acción</span>
-      </template>
-    </CrudDataTable>
-
-    <!-- Modal para Confirmar Aceptación -->
-    <ModalDialog
-      v-model="showAccept"
-      title="Aceptar solicitud"
-      :message="`¿Confirmas que deseas aceptar la solicitud de la familia ${selected?.familia || ''}? Esta acción cambiará el estado a Aceptado y se incluirá en la jornada de distribución.`"
-      confirm-text="Aceptar Solicitud"
-      confirm-variant="success"
-      @confirm="confirmarAceptacion"
-    />
-
-    <!-- Modal para Rechazar -->
-    <ModalDialog
-      v-model="showReject"
-      title="Rechazar solicitud"
-      message="Indica el motivo del rechazo. Esta acción actualizará el estatus."
-      confirm-text="Rechazar"
-      confirm-variant="danger"
-      @confirm="confirmarRechazo"
-    />
-=======
       <div v-if="confirmAction === 'rechazar'" class="dialog-field">
         <label for="motivo-rechazo">Motivo del rechazo</label>
         <textarea
@@ -195,7 +154,6 @@
         <small>El motivo quedará guardado en el pedido y podrá consultarse.</small>
       </div>
     </ConfirmDialog>
->>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
   </div>
 </template>
 
@@ -207,14 +165,8 @@ import { usePedidos } from '../../composables/usePedidos.js'
 
 const { pedidos, fetchPedidos, updateStatus, error: errorPedidos } = usePedidos()
 
-<<<<<<< HEAD
-const showAccept = ref(false)
-const showReject = ref(false)
-const selected = ref(null)
-=======
 const jefe = ref(null)
 const calleId = ref(null)
->>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
 const loading = ref(true)
 const accionLoading = ref(false)
 const error = ref('')
@@ -439,38 +391,6 @@ function formatearFecha(fecha) {
   })
 }
 
-<<<<<<< HEAD
-// Abrir modal de aceptación
-function openAccept(row) {
-  selected.value = row
-  showAccept.value = true
-}
-
-// Confirmar actualización a 'aceptado'
-async function confirmarAceptacion() {
-  if (!selected.value) return
-  loading.value = true
-  await updateStatus(selected.value._original.id_pedido, 'aceptado')
-  await fetchPedidos()
-  selected.value = null
-  loading.value = false
-}
-
-// Abrir modal de rechazo
-function openReject(row) {
-  selected.value = row
-  showReject.value = true
-}
-
-// Confirmar actualización a 'rechazado'
-async function confirmarRechazo() {
-  if (!selected.value) return
-  loading.value = true
-  await updateStatus(selected.value._original.id_pedido, 'rechazado')
-  await fetchPedidos()
-  selected.value = null
-  loading.value = false
-=======
 function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   const mensaje = String(err?.message || err?.details || '')
   if (/No tienes permiso|42501|row-level security/i.test(mensaje)) {
@@ -519,7 +439,6 @@ function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
->>>>>>> 9502f04 (feat: login renovado, registros pendientes y notificaciones)
 }
 
 .pulse-dot {

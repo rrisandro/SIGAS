@@ -17,9 +17,6 @@
           Descargar JSON
         </BaseButton>
       </div>
-      <BaseButton size="sm" variant="ghost" @click="cargarHistorico">
-        🔄 Actualizar Datos
-      </BaseButton>
     </div>
 
     <!-- Indicador de Carga -->
@@ -353,7 +350,7 @@ function imprimirReporte() {
 }
 
 onMounted(() => {
-  cargarAuditoria()
+  cargarHistorico()
 })
 </script>
 
