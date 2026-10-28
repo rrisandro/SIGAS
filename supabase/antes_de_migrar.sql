@@ -28,7 +28,17 @@ select 'historial_distribucion', count(*) from public.historial_distribucion
 order by tabla;
 
 -- ============================================================================
--- 2. ¿Existen las tablas que retiramos del frontend?
+-- 2. Usuarios existentes sin auth_id
+--    Con RLS, un usuario sin auth_id no podrá leer su propio perfil.
+--    Esto NO se corrige solo; sirve para detectarlo antes.
+-- ============================================================================
+select id, nombre_familia, id_cargo, activo
+from public.familias
+where auth_id is null
+order by id;
+
+-- ============================================================================
+-- 3. ¿Existen las tablas que retiramos del frontend?
 --    Si aparecen, NO se borran con la migración. Solo se conservan.
 -- ============================================================================
 select table_name
@@ -37,7 +47,7 @@ where table_schema = 'public'
   and table_name in ('bombonas', 'auditoria');
 
 -- ============================================================================
--- 3. Políticas RLS actuales
+-- 4. Políticas RLS actuales
 --    Si tienes políticas propias, guarda este resultado antes de continuar.
 --    La migración reemplaza las políticas de las tablas que administra.
 -- ============================================================================
@@ -47,7 +57,7 @@ where schemaname = 'public'
 order by tablename, policyname;
 
 -- ============================================================================
--- 4. RESPALDO DE DATOS · Esquema backup_sigas
+-- 5. RESPALDO DE DATOS · Esquema backup_sigas
 --    Son copias de solo datos (sin constraints ni triggers).
 --    No afectan el funcionamiento de la app.
 -- ============================================================================
