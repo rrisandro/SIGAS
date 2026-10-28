@@ -3,8 +3,19 @@
     <!-- CABECERA PRINCIPAL (Oculta en la impresión) -->
     <div class="historico-header print:hidden">
       <div class="page-heading">
-        <h2 class="page-title">Histórico de Ciclos y Reportes</h2>
-        <p class="page-subtitle">Resumen ejecutivo y detalle de jornadas de distribución de gas</p>
+        <h2 class="page-title">Histórico y Auditoría de Ciclos</h2>
+        <p class="page-subtitle">Trazabilidad y reportes de las jornadas de distribución de gas</p>
+      </div>
+      <div class="audit-actions print:hidden">
+        <BaseButton variant="outline" :disabled="cargando" @click="cargarHistorico">
+          {{ cargando ? 'Actualizando...' : 'Actualizar' }}
+        </BaseButton>
+        <BaseButton variant="outline" :disabled="!rowsHistorico.length" @click="download('csv')">
+          Descargar CSV
+        </BaseButton>
+        <BaseButton variant="outline" :disabled="!rowsHistorico.length" @click="download('json')">
+          Descargar JSON
+        </BaseButton>
       </div>
       <BaseButton size="sm" variant="ghost" @click="cargarHistorico">
         🔄 Actualizar Datos
@@ -211,6 +222,7 @@ import BaseButton from '../../components/ui/BaseButton.vue'
 import { supabase } from '../../lib/supabase'
 
 const cargando = ref(true)
+const error = ref('')
 const listaHistorico = ref([])
 const cicloSeleccionado = ref(null)
 
@@ -252,51 +264,85 @@ function formatearFecha(fecha) {
 
 async function cargarHistorico() {
   cargando.value = true
+  error.value = ''
 
-  const { data: ciclosData, error } = await supabase
-    .from('ciclos_distribucion')
-    .select(`
-      *,
-      calles (id_calle, nombre),
-      pedidos (
-        id_pedido,
-        tipo_bombona,
-        pico,
-        status,
-        familias (
-          id,
-          nombre_familia
+  try {
+    const { data: ciclosData, error: queryError } = await supabase
+      .from('ciclos_distribucion')
+      .select(`
+        *,
+        calles (id_calle, nombre),
+        pedidos (
+          id_pedido,
+          tipo_bombona,
+          pico,
+          status,
+          familias (
+            id,
+            nombre_familia
+          )
         )
-      )
-    `)
-    .order('id_ciclo', { ascending: false })
+      `)
+      .order('id_ciclo', { ascending: false })
 
-  if (!error && ciclosData) {
-    listaHistorico.value = ciclosData.map((c) => {
-      const pedidosList = c.pedidos || []
-      const entregados = pedidosList.filter(p => p.status === 'entregado')
+    if (queryError) throw queryError
 
-      const desglose = {}
-      entregados.forEach(p => {
-        const t = p.tipo_bombona || 'General'
-        desglose[t] = (desglose[t] || 0) + 1
+    if (ciclosData) {
+      listaHistorico.value = ciclosData.map((c) => {
+        const pedidosList = c.pedidos || []
+        const entregados = pedidosList.filter(p => p.status === 'entregado')
+
+        const desglose = {}
+        entregados.forEach(p => {
+          const t = p.tipo_bombona || 'General'
+          desglose[t] = (desglose[t] || 0) + 1
+        })
+
+        return {
+          ...c,
+          totalSolicitudes: pedidosList.length,
+          totalEntregados: entregados.length,
+          desgloseBombonas: desglose
+        }
       })
-
-      return {
-        ...c,
-        totalSolicitudes: pedidosList.length,
-        totalEntregados: entregados.length,
-        desgloseBombonas: desglose
-      }
-    })
+    }
+  } catch (err) {
+    console.error('[SIGAS] Error cargando histórico:', err)
+    error.value = `No se pudo cargar el historial: ${err?.message || 'error desconocido'}`
+  } finally {
+    cargando.value = false
   }
-
-  cargando.value = false
 }
 
-onMounted(() => {
-  cargarHistorico()
-})
+function download(format) {
+  const data = rowsHistorico.value.map(({ _original, ...row }) => row)
+  let content
+  let mime
+  let filename
+
+  if (format === 'json') {
+    content = JSON.stringify(data, null, 2)
+    mime = 'application/json'
+    filename = 'auditoria-ciclos.json'
+  } else {
+    const headers = ['nombre', 'calle', 'entregados', 'fecha', 'estado']
+    const lines = [headers.join(',')]
+    data.forEach((row) => {
+      lines.push(headers.map((h) => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(','))
+    })
+    content = lines.join('\n')
+    mime = 'text/csv;charset=utf-8'
+    filename = 'auditoria-ciclos.csv'
+  }
+
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
 
 function verDetalleCiclo(ciclo) {
   cicloSeleccionado.value = ciclo
@@ -305,6 +351,10 @@ function verDetalleCiclo(ciclo) {
 function imprimirReporte() {
   window.print()
 }
+
+onMounted(() => {
+  cargarAuditoria()
+})
 </script>
 
 <style scoped>
@@ -431,6 +481,16 @@ function imprimirReporte() {
   border-radius: 10px;
 }
 
+.audit-alert {
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 14px;
+  margin-bottom: 1rem;
+}
+
 .history-detail-card > span:first-child {
   color: var(--color-muted);
   font-size: 0.7rem;
@@ -498,6 +558,10 @@ function imprimirReporte() {
 
   .historico-modal__handle {
     display: none;
+  }
+
+  .audit-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
