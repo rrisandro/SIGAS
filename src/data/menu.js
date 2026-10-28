@@ -6,7 +6,6 @@ export const menuByRole = {
     { path: 'familias', label: 'Familias', icon: 'Users' },
     { path: 'usuarios', label: 'Usuarios', icon: 'Shield' },
     { path: 'logistica', label: 'Logística', icon: 'Truck' },
-    { path: 'bombonas', label: 'Bombonas', icon: 'PackageCheck' },
     { path: 'auditoria', label: 'Auditoría', icon: 'FileText' },
   ],
   jefe: [

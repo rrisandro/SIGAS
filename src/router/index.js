@@ -55,11 +55,6 @@ const router = createRouter({
           meta: { role: 'admin' },
         },
         {
-          path: 'admin/bombonas',
-          component: () => import('../views/admin/BombonasView.vue'),
-          meta: { role: 'admin' },
-        },
-        {
           path: 'admin/auditoria',
           component: () => import('../views/admin/AuditoriaView.vue'),
           meta: { role: 'admin' },
