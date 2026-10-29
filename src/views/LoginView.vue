@@ -1,145 +1,298 @@
 <template>
   <div class="login-page">
+    <div class="login-bg" aria-hidden="true">
+      <div class="bg-glow bg-glow--one" />
+      <div class="bg-glow bg-glow--two" />
+      <div class="bg-grid" />
+    </div>
+
     <div class="card">
-      <form class="form" @submit.prevent="handleLogin">
+      <form class="form" @submit.prevent="handleLogin" novalidate>
         <div class="logo-container">
           <img :src="logoImage" alt="SIGAS Logo" class="brand-logo" />
         </div>
 
-        <h2 id="heading">Iniciar Sesión</h2>
+        <div class="heading-wrap">
+          <p class="eyebrow">Sistema Integral de Gas</p>
+          <h2 id="heading">Iniciar Sesión</h2>
+          <p class="subtitle">Accede con tu correo y contraseña registrados.</p>
+        </div>
 
         <!-- CAMPO DE CORREO -->
         <div class="field">
-          <svg viewBox="0 0 16 16" fill="currentColor" class="input-icon" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.106 7.222c0-2.967-2.249-5.032-5.482-5.032-3.35 0-5.646 2.318-5.646 5.702 0 3.493 2.235 5.708 5.762 5.708.862 0 1.689-.123 2.304-.335v-.862c-.43.199-1.354.328-2.29.328-2.926 0-4.813-1.88-4.813-4.798 0-2.844 1.921-4.881 4.594-4.881 2.735 0 4.608 1.688 4.608 4.156 0 1.682-.554 2.769-1.416 2.769-.492 0-.772-.28-.772-.76V5.206H8.923v.834h-.11c-.266-.595-.881-.964-1.6-.964-1.4 0-2.378 1.162-2.378 2.823 0 1.737.957 2.906 2.379 2.906.8 0 1.415-.39 1.709-1.087h.11c.081.67.703 1.148 1.503 1.148 1.572 0 2.57-1.415 2.57-3.643zm-7.177.704c0-1.197.54-1.907 1.456-1.907.93 0 1.524.738 1.524 1.907S8.308 9.84 7.371 9.84c-.895 0-1.442-.725-1.442-1.914z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="input-icon" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4 7 8 6 8-6" />
           </svg>
           <input
+            id="login-email"
             v-model="loginEmail"
             type="email"
             class="input-field"
-            placeholder="Correo Electrónico"
+            placeholder="Correo electrónico"
             autocomplete="email"
+            aria-label="Correo electrónico"
             required
           />
         </div>
 
         <!-- CAMPO DE CONTRASEÑA -->
         <div class="field">
-          <svg viewBox="0 0 16 16" fill="currentColor" class="input-icon" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="input-icon" aria-hidden="true">
+            <rect x="4" y="10" width="16" height="10" rx="2" />
+            <path stroke-linecap="round" d="M8 10V7a4 4 0 0 1 8 0v3" />
           </svg>
           <input
+            id="login-password"
             v-model="loginPassword"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             class="input-field"
             placeholder="Contraseña"
             autocomplete="current-password"
+            aria-label="Contraseña"
             required
           />
+          <button
+            type="button"
+            class="password-toggle"
+            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            @click="showPassword = !showPassword"
+          >
+            <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.4 10.4 0 0 1 12 5c5.5 0 9 7 9 7a17.6 17.6 0 0 1-3.2 4.1M6.2 6.2C4.1 7.8 3 10 3 12c0 0 3.5 7 9 7 1.1 0 2.1-.3 3-.7" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+              <circle cx="12" cy="12" r="2.8" />
+            </svg>
+          </button>
         </div>
 
-        <p v-if="error" class="error-text">{{ error }}</p>
-        <p v-if="notice" class="notice-text">{{ notice }}</p>
+        <p v-if="error" class="error-text" role="alert">{{ error }}</p>
+        <p v-if="notice" class="notice-text" role="status">{{ notice }}</p>
 
         <div class="btn-group">
           <button type="submit" class="button1" :disabled="loading">
+            <span v-if="loading" class="btn-spinner" aria-hidden="true" />
             {{ loading ? 'Ingresando...' : 'Ingresar' }}
           </button>
-          <button type="button" class="button2" @click="abrirModalRegistro">Registrarse</button>
+          <button type="button" class="button2" @click="openRegister">Registrarse</button>
         </div>
 
-        <button type="button" class="button3" @click="onForgotClick">¿Olvidaste tu contraseña?</button>
+        <button type="button" class="button3" @click="openForgot">¿Olvidaste tu contraseña?</button>
+
+        <p class="footnote">Al ingresar aceptas las políticas de uso y privacidad de SIGAS.</p>
       </form>
     </div>
 
     <!-- MODAL DE RECUPERACIÓN DE CONTRASEÑA -->
-    <div v-if="showForgot" class="modal-overlay" @click.self="closeForgot">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Recuperar contraseña">
-        <span class="modal-sheet-handle" aria-hidden="true"></span>
-        <h3>Recuperar contraseña</h3>
-        <p class="modal-hint">
-          Escribe el correo de tu cuenta y te enviaremos un enlace para crear una nueva contraseña.
-        </p>
+    <Teleport to="body">
+      <div v-if="showForgot" class="modal-overlay" @click.self="closeForgot">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
+          <span class="modal-sheet-handle" aria-hidden="true"></span>
+          <button type="button" class="modal-close" aria-label="Cerrar" @click="closeForgot">×</button>
+          <h3 id="forgot-title">Recuperar contraseña</h3>
+          <p class="modal-hint">
+            Escribe el correo de tu cuenta y te enviaremos un enlace para crear una nueva contraseña.
+          </p>
 
-        <form class="modal-form" @submit.prevent="handleForgotPassword">
-          <div class="field">
-            <input
-              v-model="forgotEmail"
-              type="email"
-              class="input-field"
-              placeholder="Correo Electrónico"
-              autocomplete="email"
-              required
-            />
-          </div>
+          <form class="modal-form" @submit.prevent="handleForgotPassword">
+            <div class="field">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="input-icon" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4 7 8 6 8-6" />
+              </svg>
+              <input
+                id="forgot-email"
+                v-model="forgotEmail"
+                type="email"
+                class="input-field"
+                placeholder="Correo electrónico"
+                autocomplete="email"
+                aria-label="Correo electrónico"
+                required
+              />
+            </div>
 
-          <p v-if="forgotError" class="error-text">{{ forgotError }}</p>
-          <p v-if="forgotNotice" class="notice-text">{{ forgotNotice }}</p>
+            <p v-if="forgotError" class="error-text" role="alert">{{ forgotError }}</p>
+            <p v-if="forgotNotice" class="notice-text" role="status">{{ forgotNotice }}</p>
 
-          <div class="btn-group">
-            <button type="submit" class="button1" :disabled="forgotLoading">
-              {{ forgotLoading ? 'Enviando...' : 'Enviar enlace' }}
-            </button>
-            <button type="button" class="button2" :disabled="forgotLoading" @click="closeForgot">
-              Cancelar
-            </button>
-          </div>
-        </form>
+            <div class="modal-actions">
+              <button type="button" class="button2" :disabled="forgotLoading" @click="closeForgot">Cancelar</button>
+              <button type="submit" class="button1" :disabled="forgotLoading">
+                <span v-if="forgotLoading" class="btn-spinner" aria-hidden="true" />
+                {{ forgotLoading ? 'Enviando...' : 'Enviar enlace' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- MODAL DE REGISTRO DE FAMILIA -->
-    <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModalRegistro">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Registro de familia">
-        <span class="modal-sheet-handle" aria-hidden="true"></span>
-        <h3>Registro de Familia</h3>
-        <form @submit.prevent="handleRegister" class="modal-form">
-          <div class="field">
-            <input v-model="regCedula" type="number" class="input-field" placeholder="Cédula (ID de la Familia)" required />
-          </div>
+    <Teleport to="body">
+      <div v-if="showRegister" class="modal-overlay" @click.self="closeRegister">
+        <div class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="register-title">
+          <span class="modal-sheet-handle" aria-hidden="true"></span>
+          <button type="button" class="modal-close" aria-label="Cerrar" @click="closeRegister">×</button>
+          <h3 id="register-title">Registro de Familia</h3>
+          <p class="modal-hint">
+            Completa tus datos. El registro quedará en estado <strong>PENDIENTE</strong> hasta que el Jefe de Calle de tu zona lo revise y apruebe.
+          </p>
 
-          <div class="field">
-            <input v-model="regNombre" type="text" class="input-field" placeholder="Nombre y Apellido" required />
-          </div>
+          <form class="modal-form register-form" @submit.prevent="handleRegister" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <input
+                  id="reg-cedula"
+                  v-model="regCedula"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  class="input-field"
+                  placeholder="Cédula (ID de la Familia)"
+                  aria-label="Cédula"
+                  required
+                />
+              </div>
 
-          <div class="field">
-            <input v-model="regEmail" type="email" class="input-field" placeholder="Correo Electrónico" required />
-          </div>
+              <div class="field">
+                <input
+                  id="reg-nombre"
+                  v-model="regNombre"
+                  type="text"
+                  class="input-field"
+                  placeholder="Nombre y Apellido"
+                  autocomplete="name"
+                  aria-label="Nombre y apellido"
+                  required
+                />
+              </div>
 
-          <div class="field">
-            <select v-model="regCalle" class="select-field" required>
-              <option value="" disabled selected>Selecciona tu Calle</option>
-              <option v-for="calle in listaCalles" :key="calle.id_calle" :value="calle.id_calle">
-                {{ calle.nombre }}
-              </option>
-            </select>
-          </div>
+              <div class="field">
+                <input
+                  id="reg-email"
+                  v-model="regEmail"
+                  type="email"
+                  class="input-field"
+                  placeholder="Correo Electrónico"
+                  autocomplete="email"
+                  aria-label="Correo electrónico"
+                  required
+                />
+              </div>
 
-          <div class="field">
-            <input
-              v-model="regPassword"
-              type="password"
-              class="input-field"
-              placeholder="Contraseña"
-              autocomplete="new-password"
-              minlength="6"
-              required
-            />
-          </div>
+              <div class="field">
+                <input
+                  id="reg-telefono"
+                  v-model="regTelefono"
+                  type="tel"
+                  class="input-field"
+                  placeholder="Teléfono"
+                  autocomplete="tel"
+                  aria-label="Teléfono"
+                />
+              </div>
 
-          <p v-if="regError" class="error-text">{{ regError }}</p>
+              <div class="field">
+                <select
+                  id="reg-calle"
+                  v-model="regCalle"
+                  class="select-field"
+                  aria-label="Calle o sector"
+                  required
+                >
+                  <option value="" disabled>Selecciona tu Calle</option>
+                  <option v-for="calle in listaCalles" :key="calle.id_calle" :value="calle.id_calle">
+                    {{ calle.nombre }}
+                  </option>
+                </select>
+              </div>
 
-          <div class="btn-group">
-            <button type="submit" class="button1" :disabled="loadingReg">
-              {{ loadingReg ? 'Guardando...' : 'Completar Registro' }}
-            </button>
-            <button type="button" class="button2" :disabled="loadingReg" @click="cerrarModalRegistro">
-              Cancelar
-            </button>
-          </div>
-        </form>
+              <div class="field">
+                <input
+                  id="reg-personas"
+                  v-model="regPersonas"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  class="input-field"
+                  placeholder="Personas en el hogar"
+                  aria-label="Personas en el hogar"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <input
+                id="reg-direccion"
+                v-model="regDireccion"
+                type="text"
+                class="input-field"
+                placeholder="Dirección de la vivienda"
+                autocomplete="street-address"
+                aria-label="Dirección de la vivienda"
+              />
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <input
+                  id="reg-password"
+                  v-model="regPassword"
+                  :type="showRegPassword ? 'text' : 'password'"
+                  class="input-field"
+                  placeholder="Contraseña"
+                  autocomplete="new-password"
+                  minlength="6"
+                  aria-label="Contraseña"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  :aria-label="showRegPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                  @click="showRegPassword = !showRegPassword"
+                >
+                  <svg v-if="showRegPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.4 10.4 0 0 1 12 5c5.5 0 9 7 9 7a17.6 17.6 0 0 1-3.2 4.1M6.2 6.2C4.1 7.8 3 10 3 12c0 0 3.5 7 9 7 1.1 0 2.1-.3 3-.7" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+                    <circle cx="12" cy="12" r="2.8" />
+                  </svg>
+                </button>
+              </div>
+
+              <div class="field">
+                <input
+                  id="reg-password-confirm"
+                  v-model="regPasswordConfirm"
+                  :type="showRegPassword ? 'text' : 'password'"
+                  class="input-field"
+                  placeholder="Confirmar contraseña"
+                  autocomplete="new-password"
+                  minlength="6"
+                  aria-label="Confirmar contraseña"
+                  required
+                />
+              </div>
+            </div>
+
+            <p v-if="registerError" class="error-text" role="alert">{{ registerError }}</p>
+            <p v-if="registerNotice" class="notice-text" role="status">{{ registerNotice }}</p>
+
+            <div class="modal-actions">
+              <button type="button" class="button2" :disabled="registerLoading" @click="closeRegister">Cancelar</button>
+              <button type="submit" class="button1" :disabled="registerLoading">
+                <span v-if="registerLoading" class="btn-spinner" aria-hidden="true" />
+                {{ registerLoading ? 'Guardando...' : 'Completar Registro' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -154,36 +307,36 @@ const router = useRouter()
 const route = useRoute()
 const { setSession } = useAuth()
 
-// Variables de Login
 const loginEmail = ref('')
 const loginPassword = ref('')
 const error = ref('')
 const notice = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
 
-// Variables de recuperación
 const showForgot = ref(false)
 const forgotEmail = ref('')
 const forgotError = ref('')
 const forgotNotice = ref('')
 const forgotLoading = ref(false)
 
-// Variables de Registro
-const mostrarModal = ref(false)
+const showRegister = ref(false)
 const regCedula = ref('')
 const regNombre = ref('')
 const regEmail = ref('')
+const regTelefono = ref('')
 const regCalle = ref('')
+const regPersonas = ref('')
+const regDireccion = ref('')
 const regPassword = ref('')
-const regError = ref('')
-const loadingReg = ref(false)
+const regPasswordConfirm = ref('')
+const registerError = ref('')
+const registerNotice = ref('')
+const registerLoading = ref(false)
+const showRegPassword = ref(false)
 const listaCalles = ref([])
 
-const cargoMap = {
-  1: 'admin',
-  2: 'jefe',
-  3: 'familia',
-}
+const cargoMap = { 1: 'admin', 2: 'jefe', 3: 'familia' }
 
 onMounted(async () => {
   if (route.query.reset === '1') {
@@ -219,17 +372,7 @@ async function cargarCalles() {
   }
 }
 
-function abrirModalRegistro() {
-  regError.value = ''
-  mostrarModal.value = true
-}
-
-function cerrarModalRegistro() {
-  if (loadingReg.value) return
-  mostrarModal.value = false
-}
-
-function onForgotClick() {
+function openForgot() {
   forgotEmail.value = loginEmail.value.trim()
   forgotError.value = ''
   forgotNotice.value = ''
@@ -239,6 +382,30 @@ function onForgotClick() {
 function closeForgot() {
   if (forgotLoading.value) return
   showForgot.value = false
+}
+
+function openRegister() {
+  registerError.value = ''
+  registerNotice.value = ''
+  showRegister.value = true
+}
+
+function closeRegister() {
+  if (registerLoading.value) return
+  showRegister.value = false
+}
+
+function limpiarFormularioRegistro() {
+  regCedula.value = ''
+  regNombre.value = ''
+  regEmail.value = ''
+  regTelefono.value = ''
+  regCalle.value = ''
+  regPersonas.value = ''
+  regDireccion.value = ''
+  regPassword.value = ''
+  regPasswordConfirm.value = ''
+  showRegPassword.value = false
 }
 
 function mensajeDeError(err, fallback) {
@@ -465,34 +632,39 @@ async function insertarRegistroDirecto(authUserId, payload) {
 
 // Proceso de Registro Completo
 async function handleRegister() {
-  regError.value = ''
+  registerError.value = ''
+  registerNotice.value = ''
 
   const cedula = Number(regCedula.value)
   const email = regEmail.value.trim()
   const nombre = regNombre.value.trim()
 
   if (!Number.isInteger(cedula) || cedula <= 0) {
-    regError.value = 'Ingresa una cédula válida.'
+    registerError.value = 'Ingresa una cédula válida.'
     return
   }
   if (!nombre) {
-    regError.value = 'Ingresa tu nombre y apellido.'
+    registerError.value = 'Ingresa tu nombre y apellido.'
     return
   }
   if (!email) {
-    regError.value = 'Ingresa tu correo electrónico.'
+    registerError.value = 'Ingresa tu correo electrónico.'
     return
   }
   if (!regCalle.value) {
-    regError.value = 'Selecciona tu calle o sector.'
+    registerError.value = 'Selecciona tu calle o sector.'
     return
   }
   if (regPassword.value.length < 6) {
-    regError.value = 'La contraseña debe tener al menos 6 caracteres.'
+    registerError.value = 'La contraseña debe tener al menos 6 caracteres.'
+    return
+  }
+  if (regPassword.value !== regPasswordConfirm.value) {
+    registerError.value = 'Las contraseñas no coinciden.'
     return
   }
 
-  loadingReg.value = true
+  registerLoading.value = true
 
   try {
     // 1. Crear usuario en Authentication de Supabase
@@ -523,9 +695,9 @@ async function handleRegister() {
       p_auth_id: authData.user.id,
       p_nombre: nombre,
       p_id_calle: Number(regCalle.value),
-      p_telefono: null,
-      p_direccion: null,
-      p_personas: null,
+      p_telefono: regTelefono.value.trim() || null,
+      p_direccion: regDireccion.value.trim() || null,
+      p_personas: regPersonas.value ? Number(regPersonas.value) : null,
       p_email: email,
     }
 
@@ -556,366 +728,436 @@ async function handleRegister() {
     }
 
     const notificado = resultado?.notificado !== false
-    notice.value = notificado
+    registerNotice.value = notificado
       ? 'Registro enviado. Quedó en estado PENDIENTE y el Jefe de Calle de tu zona recibió una notificación.'
       : 'Registro enviado. Quedó en estado PENDIENTE. Aún no hay un Jefe de Calle asignado a tu zona; el administrador lo revisará.'
 
+    notice.value = registerNotice.value
     loginEmail.value = email
     loginPassword.value = ''
-    regCedula.value = ''
-    regNombre.value = ''
-    regEmail.value = ''
-    regCalle.value = ''
-    regPassword.value = ''
-    mostrarModal.value = false
+    limpiarFormularioRegistro()
+
+    window.setTimeout(() => {
+      if (!registerLoading.value) showRegister.value = false
+    }, 1800)
   } catch (err) {
     console.error('[SIGAS] Error de registro:', err)
-    regError.value = mensajeDeError(
+    registerError.value = mensajeDeError(
       err,
       'No se pudo completar el registro. Intenta nuevamente.'
     )
   } finally {
-    loadingReg.value = false
+    registerLoading.value = false
   }
 }
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
-
-:root {
-  --primary-blue: #0072CE;
-  --dark-blue: #003366;
-  --accent-orange: #FF7A00;
-  --card-bg: rgba(15, 23, 36, 0.90);
-}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 .login-page {
-  margin: 0;
-  /* Safe areas para iPhone (Dynamic Island / Home Indicator) */
-  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + env(safe-area-inset-bottom, 0px)) 1rem;
-  /* 100dvh = dynamic viewport height, soluciona el bug de 100vh en iOS Safari */
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
+  --primary-blue: #0ea5e9;
+  --accent-cyan: #38bdf8;
+  --card-bg: rgba(9, 17, 31, 0.9);
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  /* Fondo sólido en tonos azules: contrasta con la tarjeta oscura del login. */
-  background: radial-gradient(circle at 18% 18%, #e0f2fe 0%, #7dd3fc 38%, #0ea5e9 70%, #0369a1 100%);
-  font-family: 'Poppins', sans-serif;
-  color: #ffffff;
-  position: relative;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(56, 189, 248, 0.12), transparent 34%),
+    radial-gradient(circle at 88% 92%, rgba(20, 184, 166, 0.09), transparent 40%),
+    linear-gradient(145deg, #0b1220 0%, #0d1b2e 48%, #08111f 100%);
+  color: #f8fafc;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   box-sizing: border-box;
+}
+
+.login-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.bg-glow--one {
+  top: -180px;
+  left: -140px;
+  width: 520px;
+  height: 520px;
+  background: rgba(14, 165, 233, 0.22);
+}
+
+.bg-glow--two {
+  right: -220px;
+  bottom: -260px;
+  width: 620px;
+  height: 620px;
+  background: rgba(20, 184, 166, 0.14);
+}
+
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.2) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at center, #000 8%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 8%, transparent 72%);
 }
 
 .card {
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, rgba(0, 114, 206, 0.3), rgba(255, 122, 0, 0.15));
-  padding: 2px;
-  border-radius: 26px;
-  box-shadow: 0px 12px 40px rgba(56, 152, 216, 0.8), 0px 0px 25px rgba(67, 162, 218, 0.2);
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+  width: min(100%, 430px);
+  padding: 1px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.5), rgba(14, 165, 233, 0.16) 48%, rgba(251, 146, 60, 0.22));
+  box-shadow:
+    0 30px 80px rgba(2, 6, 23, 0.58),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0px 18px 45px rgba(0, 0, 0, 0.8), 0px 0px 35px rgba(0, 114, 206, 0.4);
+  transform: translateY(-3px);
+  box-shadow:
+    0 36px 90px rgba(2, 6, 23, 0.62),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .form {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 2em 1.5em;
-  /* Margen lateral en pantallas estrechas para que no se sienta pegado */
-  margin-left: 0.75rem;
-  margin-right: 0.75rem;
-  background-color: rgba(15, 23, 36, 0.80);
-  color: #fff;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 24px;
-  border: 1px solid rgb(50, 132, 209);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  width: 100%;
+  padding: 2.2em 1.6em 1.8em;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 27px;
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.94), rgba(8, 17, 31, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   box-sizing: border-box;
 }
 
 .logo-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.25em;
 }
 
 .brand-logo {
-  width: 125px; /* Logo interno un poco más grande */
-  height: 125px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: #3473d1;
-  border: 3px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.5);
+  background-color: #1e3a5f;
+  border: 2px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.55);
   transition: transform 0.3s ease;
 }
 
 .brand-logo:hover {
-  transform: scale(1.05);
+  transform: scale(1.04);
+}
+
+.heading-wrap {
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #7dd3fc;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 #heading {
-  text-align: center;
-  margin: 0 0 10px 0;
+  margin: 0;
   color: #ffffff;
-  font-size: 1.65em;
+  font-size: 1.6rem;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.01em;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  color: rgba(203, 213, 225, 0.62);
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 .field {
   display: flex;
   align-items: center;
-  gap: 0.8em;
-  border-radius: 12px;
-  padding: 0.85em 1.1em;
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+  gap: 0.75em;
+  min-height: 52px;
+  padding: 0.75em 1em;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.045);
+  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .field:focus-within {
-  border-color: var(--primary-blue);
-  background-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 10px rgba(0, 114, 206, 0.4);
+  border-color: rgba(56, 189, 248, 0.65);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12);
 }
 
 .input-icon {
-  height: 1.25em;
-  width: 1.25em;
-  fill: #ffffff;
-  transition: fill 0.3s ease;
   flex-shrink: 0;
-}
-
-.input-field, .select-field {
-  background: none;
-  border: none;
-  outline: none;
-  width: 100%;
-  color: #ffffff;
-  font-size: 1em;
-  font-family: 'Poppins', sans-serif;
-}
-
-.input-field::placeholder {
-  color: #ffffff;
-}
-
-.select-field option {
-  background-color: #0f1724;
-  color: #ffffff;
-}
-
-.error-text {
-  margin: 0;
-  color: #ff8a8a;
-  font-size: 0.85em;
-  text-align: center;
-}
-
-.notice-text {
-  margin: 0;
-  color: #72f293;
-  font-size: 0.85em;
-  text-align: center;
-}
-
-.btn-group {
-  display: flex;
-  gap: 12px;
-  margin-top: 1em;
-}
-
-.button1 {
-  flex: 1;
-  padding: 0.85em;
-  border-radius: 10px;
-  border: none;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  background: linear-gradient(135deg, #0072CE 0%, #227cc5 100%);
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 114, 206, 0.4);
-}
-
-.button1:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0084eb 0%, #005aa3 100%);
-  box-shadow: 0 6px 18px rgba(0, 114, 206, 0.6);
-  transform: translateY(-1px);
-}
-
-.button1:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.button2 {
-  flex: 1;
-  padding: 0.85em;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.05);
-  color: #d1d5db;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.button2:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-}
-
-.button3 {
-  background: none;
-  border: none;
-  color: #a0aec0;
-  font-size: 0.9em;
-  font-family: 'Poppins', sans-serif;
-  cursor: pointer;
-  margin-top: 0.6em;
-  transition: color 0.3s ease;
-  text-align: center;
-}
-
-.button3:hover {
-  color: var(--accent-orange);
-  text-decoration: underline;
-}
-
-/* MODAL */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(4px);
-}
-
-.modal-card {
-  background: #0f1724;
-  padding: 2em 1.5em;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 420px;
-  /* Margen lateral en pantallas estrechas */
-  margin-left: 0.75rem;
-  margin-right: 0.75rem;
-  border: 1px solid #0072CE;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-  box-sizing: border-box;
-}
-
-.modal-card h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  text-align: center;
-  color: #ffffff;
-}
-
-.modal-hint {
-  margin: -4px 0 14px;
-  color: #a0aec0;
-  font-size: 0.88em;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.modal-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* ==========================================================================
-   RESPONSIVE · mobile-first
-   ========================================================================== */
-.card {
-  width: min(100%, 420px);
-}
-
-.form {
-  width: 100%;
-  max-width: none;
-  margin-left: 0;
-  margin-right: 0;
-  padding: 1.6em 1.1em;
-}
-
-.brand-logo {
-  width: 96px;
-  height: 96px;
-}
-
-#heading {
-  font-size: 1.45em;
-}
-
-.field {
-  min-height: 50px;
-  padding: 0.7em 0.9em;
+  width: 1.15em;
+  height: 1.15em;
+  color: rgba(186, 230, 253, 0.7);
 }
 
 .input-field,
 .select-field {
-  min-height: 32px;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f8fafc;
+  font-family: 'Poppins', system-ui, sans-serif;
   font-size: 16px;
 }
 
+.input-field::placeholder {
+  color: rgba(203, 213, 225, 0.5);
+}
+
+.select-field {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 24px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(186, 230, 253, 0.75) 50%),
+    linear-gradient(135deg, rgba(186, 230, 253, 0.75) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 13px,
+    calc(100% - 9px) 13px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.select-field option {
+  background-color: #0f1b2d;
+  color: #f8fafc;
+}
+
+.password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(186, 230, 253, 0.65);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.password-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.error-text,
+.notice-text {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.error-text {
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: rgba(127, 29, 29, 0.26);
+  color: #fecaca;
+}
+
+.notice-text {
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  background: rgba(6, 78, 59, 0.26);
+  color: #bbf7d0;
+}
+
 .btn-group {
+  display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 0.5em;
+}
+
+.btn-group .button1,
+.btn-group .button2 {
+  flex: 1;
 }
 
 .button1,
 .button2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 48px;
   padding: 0.8em 1em;
+  border-radius: 12px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.button1 {
+  border: 0;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(2, 132, 199, 0.28);
+}
+
+.button1:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(2, 132, 199, 0.38);
+}
+
+.button1:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.button1:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.button2 {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.button2:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.button2:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .button3 {
-  min-height: 44px;
+  align-self: center;
+  min-height: 40px;
+  margin-top: 0.15em;
   padding: 6px;
-  font-size: 0.82em;
+  border: 0;
+  background: transparent;
+  color: rgba(186, 230, 253, 0.65);
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
 }
 
+.button3:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.footnote {
+  margin: 0.15em 0 0;
+  color: rgba(148, 163, 184, 0.45);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   MODALES
+   ========================================================================== */
 .modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
   align-items: flex-end;
-  padding: 0;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.18s ease-out;
 }
 
 .modal-card {
+  position: relative;
   width: 100%;
-  max-width: none;
-  max-height: 88dvh;
+  max-height: 92dvh;
   margin: 0;
-  padding: 12px 16px calc(18px + var(--safe-bottom));
+  padding: 12px 16px calc(18px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: 22px 22px 0 0;
-  animation: loginSheetUp 0.22s ease-out;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(160deg, #0f1b2d 0%, #0a1424 100%);
+  box-shadow: 0 -24px 70px rgba(2, 6, 23, 0.6);
+  box-sizing: border-box;
+  animation: sheetUp 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.modal-card--wide {
+  max-width: 640px;
 }
 
 .modal-sheet-handle {
@@ -924,26 +1166,101 @@ async function handleRegister() {
   height: 4px;
   margin: 0 auto 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.75);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .modal-card h3 {
-  font-size: 1.05rem;
+  margin: 0;
+  padding-right: 42px;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-align: left;
 }
 
-@keyframes loginSheetUp {
-  from { transform: translateY(16px); opacity: 0; }
+.modal-hint {
+  margin: 8px 0 0;
+  color: rgba(203, 213, 225, 0.65);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.modal-hint strong {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.modal-actions .button1,
+.modal-actions .button2 {
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(18px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-@media (min-width: 480px) {
-  .brand-logo {
-    width: 108px;
-    height: 108px;
-  }
+@keyframes scaleIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 
-  .form {
-    padding: 1.8em 1.4em;
+/* ==========================================================================
+   RESPONSIVE · mobile-first
+   ========================================================================== */
+@media (min-width: 480px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -953,42 +1270,21 @@ async function handleRegister() {
   }
 
   .form {
-    padding: 2em 1.5em;
+    padding: 2.2em 1.8em 2em;
   }
 
   .brand-logo {
-    width: 125px;
-    height: 125px;
+    width: 120px;
+    height: 120px;
   }
 
   #heading {
-    font-size: 1.65em;
-  }
-
-  .field {
-    min-height: 0;
-    padding: 0.85em 1.1em;
-  }
-
-  .input-field,
-  .select-field {
-    min-height: 24px;
-    font-size: 15px;
+    font-size: 1.7rem;
   }
 
   .btn-group {
     flex-direction: row;
     gap: 12px;
-  }
-
-  .button1,
-  .button2 {
-    min-height: 44px;
-  }
-
-  .button3 {
-    min-height: 40px;
-    font-size: 0.9em;
   }
 
   .modal-overlay {
@@ -997,34 +1293,50 @@ async function handleRegister() {
   }
 
   .modal-card {
-    width: 100%;
-    max-width: 420px;
+    max-width: 460px;
     max-height: 88vh;
-    margin: 0;
-    padding: 2em 1.5em;
-    border-radius: 20px;
+    padding: 26px 24px;
+    border-radius: 22px;
     animation: scaleIn 0.2s ease-out;
+  }
+
+  .modal-card--wide {
+    max-width: 640px;
   }
 
   .modal-sheet-handle {
     display: none;
   }
-}
 
-@keyframes scaleIn {
-  from { transform: scale(0.96); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  .modal-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .modal-actions .button1,
+  .modal-actions .button2 {
+    width: auto;
+    min-width: 130px;
+  }
 }
 
 @media (min-width: 1024px) {
   .input-field,
   .select-field {
-    font-size: 14px;
+    font-size: 15px;
   }
+}
 
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .brand-logo,
   .button1,
-  .button2 {
-    min-height: 42px;
+  .button2,
+  .btn-spinner,
+  .modal-overlay,
+  .modal-card {
+    animation: none;
+    transition: none;
   }
 }
 </style>
