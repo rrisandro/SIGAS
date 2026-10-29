@@ -19,7 +19,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * - En local nunca usamos localhost para los correos de Supabase; se usa
  *   el dominio público de producción como fallback.
  */
-const productionFallback = 'https://sigas.netlify.app'
+const productionFallback = 'https://sistema-de-gestion-de-gas.netlify.app'
 const configuredSiteUrl = String(import.meta.env.VITE_SITE_URL || '').trim()
 
 // Nunca usamos localhost en los correos de recuperación.
