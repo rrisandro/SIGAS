@@ -59,6 +59,9 @@
             v-model="observaciones"
             label="Observaciones"
             placeholder="Opcional"
+            :maxlength="300"
+            restrict="texto"
+            hint="Máximo 300 caracteres."
           />
         </div>
 
@@ -94,6 +97,7 @@ import BaseButton from '../../components/ui/BaseButton.vue'
 import { usePedidos } from '../../composables/usePedidos'
 import { useFamilias } from '../../composables/useFamilias'
 import { supabase } from '../../lib/supabase'
+import { validarTexto } from '../../lib/validation.js'
 
 const { createPedido } = usePedidos()
 const { familias, fetchFamilias } = useFamilias()
@@ -273,6 +277,15 @@ async function submit() {
   if (!selection.value.tipoBombonaId || !selection.value.picoId) {
     error.value = 'Completa el tipo de bombona y el pico'
     success.value = ''
+    return
+  }
+
+  const observacionesError = validarTexto(observaciones.value, {
+    label: 'Las observaciones',
+    max: 300,
+  })
+  if (observacionesError) {
+    error.value = observacionesError
     return
   }
 

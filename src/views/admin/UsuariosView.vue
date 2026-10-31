@@ -84,7 +84,9 @@
         </svg>
         <input
           v-model="filtroBusqueda"
+          v-restrict="{ tipo: 'busqueda', max: 100 }"
           type="search"
+          maxlength="100"
           placeholder="Buscar por cédula, nombre, correo o teléfono…"
         />
       </label>
@@ -271,8 +273,10 @@
           <input
             id="admin-password"
             v-model="adminPassword"
+            v-restrict="{ tipo: 'password', max: 72 }"
             type="password"
             autocomplete="current-password"
+            maxlength="72"
             placeholder="Escribe tu contraseña actual"
           />
           <small>Por seguridad, confirma tu contraseña para eliminar esta cuenta.</small>
@@ -283,6 +287,7 @@
           <textarea
             id="delete-motivo"
             v-model="motivo"
+            v-restrict="{ tipo: 'texto', max: 500 }"
             rows="3"
             maxlength="500"
             placeholder="Motivo de la baja, visible en auditoría…"
@@ -298,6 +303,7 @@ import { computed, onMounted, ref } from 'vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../composables/useAuth.js'
+import { validarPassword, validarTexto } from '../../lib/validation.js'
 
 const { currentUser } = useAuth()
 
@@ -429,8 +435,20 @@ async function ejecutarConfirmacion() {
 }
 
 async function eliminarUsuario() {
-  if (!adminPassword.value.trim()) {
-    confirmError.value = 'Escribe la contraseña del administrador.'
+  const passwordError = validarPassword(adminPassword.value, {
+    label: 'La contraseña del administrador',
+  })
+  if (passwordError) {
+    confirmError.value = passwordError
+    return
+  }
+
+  const motivoError = validarTexto(motivo.value, {
+    label: 'El motivo',
+    max: 500,
+  })
+  if (motivoError) {
+    confirmError.value = motivoError
     return
   }
 

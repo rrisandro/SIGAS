@@ -57,7 +57,13 @@
           <h3 class="admin-modal-title">Nuevo ciclo de distribución</h3>
           
           <div class="admin-modal-form">
-            <BaseInput v-model="form.nombre" label="Nombre del ciclo" placeholder="Ej: Jornada Octubre 2026" />
+            <BaseInput
+              v-model="form.nombre"
+              label="Nombre del ciclo"
+              placeholder="Ej: Jornada Octubre 2026"
+              :maxlength="80"
+              restrict="texto"
+            />
             
             <!-- Selector de Calle -->
             <div>
@@ -81,6 +87,7 @@
               {{ guardando ? 'Guardando...' : 'Guardar' }}
             </BaseButton>
           </div>
+          <p v-if="formError" class="admin-modal-error" role="alert">{{ formError }}</p>
         </div>
       </div>
     </Teleport>
@@ -94,6 +101,7 @@ import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseInput from '../../components/ui/BaseInput.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import { supabase } from '../../lib/supabase'
+import { validarTexto } from '../../lib/validation.js'
 
 const columns = [
   { key: 'id_ciclo', label: '#' },
@@ -122,6 +130,7 @@ const rows = computed(() => {
 })
 
 const showForm = ref(false)
+const formError = ref('')
 const form = reactive({ nombre: '', id_calle: null })
 
 // 1. Cargar ciclos y lista de calles de Supabase
@@ -159,12 +168,24 @@ onMounted(() => {
 function openCreate() {
   form.nombre = ''
   form.id_calle = null
+  formError.value = ''
   showForm.value = true
 }
 
 // 2. Guardar nuevo ciclo enviando id_calle directamente (soporta NULL)
 async function save() {
-  if (!form.nombre) return
+  formError.value = ''
+
+  const nombreError = validarTexto(form.nombre, {
+    label: 'El nombre del ciclo',
+    min: 2,
+    max: 80,
+    required: true,
+  })
+  if (nombreError) {
+    formError.value = nombreError
+    return
+  }
 
   guardando.value = true
   errorMsg.value = ''
@@ -173,7 +194,7 @@ async function save() {
     .from('ciclos_distribucion')
     .insert([
       {
-        nombre_ciclo: form.nombre,
+        nombre_ciclo: form.nombre.trim(),
         id_calle: form.id_calle, // Envía null si se eligió "Todas las calles"
         estado: 'activo',
         fecha_inicio: new Date().toISOString()
@@ -334,6 +355,17 @@ async function completeCiclo(row) {
   flex-direction: column;
   gap: 10px;
   margin-top: 22px;
+}
+
+.admin-modal-error {
+  margin: 12px 0 0;
+  padding: 9px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .admin-modal-actions :deep(.btn-custom) {

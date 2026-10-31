@@ -1,5 +1,14 @@
 import { computed, ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
+import {
+  limpiarDigitos,
+  limpiarNombre,
+  limpiarTexto,
+  validarEntero,
+  validarNombre,
+  validarTelefono,
+  validarTexto,
+} from '../lib/validation.js'
 
 function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   const mensaje = String(err?.message || err?.details || '')
@@ -256,6 +265,13 @@ export function useRegistrosFamilia() {
         throw new Error('Indica el motivo del rechazo.')
       }
 
+      const motivoError = validarTexto(motivoLimpio, {
+        label: 'El motivo del rechazo',
+        max: 500,
+        required: true,
+      })
+      if (motivoError) throw new Error(motivoError)
+
       const { data, error: rpcError } = await supabase.rpc('rechazar_registro_familia', {
         p_id_familia: idFamilia,
         p_motivo: motivoLimpio,
@@ -311,16 +327,28 @@ export function useRegistrosFamilia() {
     accionLoading.value = true
     error.value = ''
     try {
+      const nombre = limpiarNombre(datos.nombre, 120)
+      const telefono = limpiarDigitos(datos.telefono, 12)
+      const direccion = limpiarTexto(datos.direccion, 200)
+
+      const errores = [
+        validarNombre(nombre, { label: 'El nombre', max: 120 }),
+        validarTelefono(telefono, { label: 'El teléfono', required: false, min: 7, max: 12 }),
+        validarTexto(direccion, { label: 'La dirección', max: 200 }),
+        validarEntero(datos.personas, { label: 'El número de personas', min: 1, max: 30 }),
+      ]
+
+      const primerError = errores.find(Boolean)
+      if (primerError) throw new Error(primerError)
+
       const payload = {
         p_id_familia: idFamilia,
-        p_nombre: String(datos.nombre || '').trim(),
-        p_telefono: String(datos.telefono || '').trim() || null,
-        p_direccion: String(datos.direccion || '').trim() || null,
+        p_nombre: nombre,
+        p_telefono: telefono || null,
+        p_direccion: direccion || null,
         p_personas: datos.personas ? Number(datos.personas) : null,
         p_id_calle: datos.id_calle ? Number(datos.id_calle) : null,
       }
-
-      if (!payload.p_nombre) throw new Error('El nombre es obligatorio.')
 
       const { data, error: rpcError } = await supabase.rpc(
         'actualizar_registro_familia',

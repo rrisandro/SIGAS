@@ -127,7 +127,10 @@
               <span class="record-avatar" aria-hidden="true">{{ inicial(registro.nombre_familia) }}</span>
               <div class="record-title">
                 <h2>{{ registro.nombre_familia || 'Sin nombre' }}</h2>
-                <p>V-{{ registro.id }} · {{ nombreCalle(registro.id_calle) }}</p>
+                <p>
+                  V-{{ registro.id }} · Código {{ registro.codigo || '—' }} ·
+                  {{ nombreCalle(registro.id_calle) }}
+                </p>
               </div>
               <span class="status-pill" :class="estadoClase(registro.estado)">
                 {{ estadoLabel(registro.estado) }}
@@ -280,6 +283,7 @@
         <textarea
           id="motivo-rechazo"
           v-model="motivo"
+          v-restrict="{ tipo: 'texto', max: 500 }"
           rows="3"
           maxlength="500"
           placeholder="Explica brevemente por qué se rechaza el registro…"
@@ -304,15 +308,38 @@
             <div class="form-grid">
               <div class="form-field">
                 <label for="edit-nombre">Nombre de la familia</label>
-                <input id="edit-nombre" v-model="editForm.nombre" type="text" required />
+                <input
+                  id="edit-nombre"
+                  v-model="editForm.nombre"
+                  v-restrict="{ tipo: 'nombre', max: 120 }"
+                  type="text"
+                  maxlength="120"
+                  required
+                />
               </div>
               <div class="form-field">
                 <label for="edit-telefono">Teléfono</label>
-                <input id="edit-telefono" v-model="editForm.telefono" type="tel" placeholder="0414-1234567" />
+                <input
+                  id="edit-telefono"
+                  v-model="editForm.telefono"
+                  v-restrict="{ tipo: 'digits', max: 12 }"
+                  type="tel"
+                  inputmode="numeric"
+                  maxlength="12"
+                  placeholder="04141234567"
+                />
               </div>
               <div class="form-field">
                 <label for="edit-personas">Personas en el hogar</label>
-                <input id="edit-personas" v-model="editForm.personas" type="number" min="1" />
+                <input
+                  id="edit-personas"
+                  v-model="editForm.personas"
+                  v-restrict="{ tipo: 'digits', max: 2 }"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  placeholder="Máximo 30"
+                />
               </div>
               <div class="form-field">
                 <label for="edit-calle">Calle / sector</label>
@@ -327,7 +354,14 @@
 
             <div class="form-field">
               <label for="edit-direccion">Dirección</label>
-              <input id="edit-direccion" v-model="editForm.direccion" type="text" placeholder="Casa #12, referencia…" />
+              <input
+                id="edit-direccion"
+                v-model="editForm.direccion"
+                v-restrict="{ tipo: 'texto', max: 200 }"
+                type="text"
+                maxlength="200"
+                placeholder="Casa #12, referencia…"
+              />
             </div>
 
             <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
@@ -351,6 +385,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
 import { useRegistrosFamilia } from '../../composables/useRegistrosFamilia.js'
+import {
+  validarEntero,
+  validarNombre,
+  validarTelefono,
+  validarTexto,
+} from '../../lib/validation.js'
 
 const {
   jefe,
@@ -587,11 +627,29 @@ function closeEdit() {
 
 async function guardarEdicion() {
   editError.value = ''
+
+  const errores = [
+    validarNombre(editForm.nombre, { label: 'El nombre de la familia', max: 120 }),
+    validarTelefono(editForm.telefono, { label: 'El teléfono', required: false, min: 7, max: 12 }),
+    validarTexto(editForm.direccion, { label: 'La dirección', max: 200 }),
+    validarEntero(editForm.personas, {
+      label: 'El número de personas',
+      min: 1,
+      max: 30,
+    }),
+  ]
+
+  const primerError = errores.find(Boolean)
+  if (primerError) {
+    editError.value = primerError
+    return
+  }
+
   try {
     await actualizarRegistro(editForm.id, {
-      nombre: editForm.nombre,
-      telefono: editForm.telefono,
-      direccion: editForm.direccion,
+      nombre: editForm.nombre.trim(),
+      telefono: editForm.telefono.trim(),
+      direccion: editForm.direccion.trim(),
       personas: editForm.personas,
       id_calle: editForm.id_calle,
     })

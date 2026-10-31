@@ -5,6 +5,11 @@
       <p class="page-subtitle">Resumen de tus solicitudes de gas</p>
     </div>
 
+    <div v-if="codigoFamilia" class="code-banner" aria-label="Código único de familia">
+      <span>Tu código de familia</span>
+      <strong>{{ codigoFamilia }}</strong>
+    </div>
+
     <!-- Indicador de Carga -->
     <div v-if="cargando" class="loading-box">
       Cargando tu información...
@@ -62,6 +67,7 @@ import { supabase } from '../../lib/supabase'
 
 const solicitudes = ref([])
 const cargando = ref(true)
+const codigoFamilia = ref('')
 
 // Cargar los pedidos de la familia logueada al iniciar
 onMounted(async () => {
@@ -74,12 +80,13 @@ onMounted(async () => {
       // 2. Buscar el id de la familia asociada a este usuario
       const { data: familiaData, error: familiaError } = await supabase
         .from('familias')
-        .select('id')
+        .select('*')
         .eq('auth_id', user.id)
         .eq('is_deleted', false)
         .maybeSingle()
 
       if (familiaData && !familiaError) {
+        codigoFamilia.value = familiaData.codigo || ''
         // 3. Consultar los pedidos de esta familia en Supabase
         const { data: pedidosData, error: pedidosError } = await supabase
           .from('pedidos')
@@ -129,6 +136,37 @@ function formatearFecha(fechaStr) {
   padding: 32px 16px;
   color: var(--color-muted);
   text-align: center;
+}
+
+.code-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #f0f9ff;
+}
+
+.code-banner span {
+  color: #0369a1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.code-banner strong {
+  padding: 4px 12px;
+  border: 1px solid #7dd3fc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0369a1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
 }
 
 .last-request {

@@ -8,26 +8,61 @@
       :placeholder="placeholder"
       :disabled="disabled"
       :required="required"
+      :maxlength="maxlength"
+      :inputmode="inputmode || undefined"
+      :autocomplete="autocomplete || undefined"
+      :aria-invalid="Boolean(error)"
       class="base-input"
-      @input="$emit('update:modelValue', $event.target.value)"
+      :class="{ 'base-input--error': error }"
+      @input="onInput"
+      @blur="onBlur"
     />
-    <p v-if="hint" class="base-hint">{{ hint }}</p>
+    <p v-if="error" class="base-error" role="alert">{{ error }}</p>
+    <p v-else-if="hint" class="base-hint">{{ hint }}</p>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { LIMITS, limpiarPorTipo } from '../../lib/validation.js'
+
+const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   label: { type: String, default: '' },
   type: { type: String, default: 'text' },
   placeholder: { type: String, default: '' },
   hint: { type: String, default: '' },
+  error: { type: String, default: '' },
   id: { type: String, default: undefined },
   disabled: { type: Boolean, default: false },
   required: { type: Boolean, default: false },
+  maxlength: { type: [String, Number], default: LIMITS.nombre },
+  restrict: { type: String, default: 'texto' },
+  inputmode: { type: String, default: '' },
+  autocomplete: { type: String, default: '' },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
+
+function onInput(event) {
+  const max = Number(props.maxlength) || LIMITS.nombre
+  const limpio = limpiarPorTipo(event.target.value, props.restrict, max)
+
+  if (event.target.value !== limpio) {
+    event.target.value = limpio
+  }
+
+  emit('update:modelValue', limpio)
+}
+
+function onBlur(event) {
+  if (props.restrict === 'password') return
+
+  const recortado = String(event.target.value ?? '').trim()
+  if (recortado === event.target.value) return
+
+  event.target.value = recortado
+  emit('update:modelValue', recortado)
+}
 </script>
 
 <style scoped>
@@ -86,9 +121,26 @@ defineEmits(['update:modelValue'])
   cursor: not-allowed;
 }
 
+.base-input--error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.base-input--error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+}
+
 .base-hint {
   margin-top: 5px;
   color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.base-error {
+  margin-top: 5px;
+  color: #dc2626;
   font-size: 0.75rem;
   line-height: 1.4;
 }

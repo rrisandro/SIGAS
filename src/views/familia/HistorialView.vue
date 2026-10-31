@@ -32,7 +32,9 @@
           <input
             id="history-search"
             v-model="filtro"
+            v-restrict="{ tipo: 'busqueda', max: 100 }"
             type="search"
+            maxlength="100"
             placeholder="Buscar por tipo, pico, estatus..."
             class="history-search"
           />

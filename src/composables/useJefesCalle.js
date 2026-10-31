@@ -1,5 +1,14 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
+import {
+  limpiarDigitos,
+  limpiarNombre,
+  limpiarUuid,
+  validarCedula,
+  validarNombre,
+  validarTelefono,
+  validarUuid,
+} from '../lib/validation.js'
 
 function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   const mensaje = String(err?.message || err?.details || '')
@@ -118,17 +127,40 @@ export function useJefesCalle() {
 
     try {
       const payload = {
-        nombre: String(jefe.nombre || '').trim(),
-        ci: String(jefe.ci || '').trim() || null,
-        telefono: String(jefe.telefono || '').trim() || null,
+        nombre: limpiarNombre(jefe.nombre, 120),
+        ci: limpiarDigitos(jefe.ci, 10) || null,
+        telefono: limpiarDigitos(jefe.telefono, 12) || null,
         id_calle: jefe.id_calle ? Number(jefe.id_calle) : null,
-        auth_id: jefe.auth_id ? String(jefe.auth_id).trim() : null,
+        auth_id: limpiarUuid(jefe.auth_id, 36) || null,
         activo: jefe.activo ?? true,
         estado: 'aprobado',
         is_deleted: false,
       }
 
-      if (!payload.nombre) throw new Error('El nombre del Jefe de Calle es obligatorio.')
+      const nombreError = validarNombre(payload.nombre, {
+        label: 'El nombre del Jefe de Calle',
+        max: 120,
+      })
+      if (nombreError) throw new Error(nombreError)
+
+      const cedulaError = validarCedula(payload.ci, {
+        label: 'La cédula',
+        required: false,
+        min: 5,
+        max: 10,
+      })
+      if (cedulaError) throw new Error(cedulaError)
+
+      const telefonoError = validarTelefono(payload.telefono, {
+        label: 'El teléfono',
+        required: false,
+        min: 7,
+        max: 12,
+      })
+      if (telefonoError) throw new Error(telefonoError)
+
+      const uuidError = validarUuid(payload.auth_id, { required: false })
+      if (uuidError) throw new Error(uuidError)
 
       const { data, error: insertError } = await supabase
         .from('jefe_de_calle')
@@ -176,15 +208,38 @@ export function useJefesCalle() {
     try {
       const anterior = jefes.value.find((item) => item.id_jefe_calle === id)
       const payload = {
-        nombre: String(jefe.nombre || '').trim(),
-        ci: String(jefe.ci || '').trim() || null,
-        telefono: String(jefe.telefono || '').trim() || null,
+        nombre: limpiarNombre(jefe.nombre, 120),
+        ci: limpiarDigitos(jefe.ci, 10) || null,
+        telefono: limpiarDigitos(jefe.telefono, 12) || null,
         id_calle: jefe.id_calle ? Number(jefe.id_calle) : null,
-        auth_id: jefe.auth_id ? String(jefe.auth_id).trim() : null,
+        auth_id: limpiarUuid(jefe.auth_id, 36) || null,
         activo: jefe.activo ?? anterior?.activo ?? true,
       }
 
-      if (!payload.nombre) throw new Error('El nombre del Jefe de Calle es obligatorio.')
+      const nombreError = validarNombre(payload.nombre, {
+        label: 'El nombre del Jefe de Calle',
+        max: 120,
+      })
+      if (nombreError) throw new Error(nombreError)
+
+      const cedulaError = validarCedula(payload.ci, {
+        label: 'La cédula',
+        required: false,
+        min: 5,
+        max: 10,
+      })
+      if (cedulaError) throw new Error(cedulaError)
+
+      const telefonoError = validarTelefono(payload.telefono, {
+        label: 'El teléfono',
+        required: false,
+        min: 7,
+        max: 12,
+      })
+      if (telefonoError) throw new Error(telefonoError)
+
+      const uuidError = validarUuid(payload.auth_id, { required: false })
+      if (uuidError) throw new Error(uuidError)
 
       const { data, error: updateError } = await supabase
         .from('jefe_de_calle')

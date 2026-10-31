@@ -73,7 +73,9 @@
           </svg>
           <input
             v-model="filtroBusqueda"
+            v-restrict="{ tipo: 'busqueda', max: 100 }"
             type="search"
+            maxlength="100"
             placeholder="Buscar por familia, tipo de bombona o fecha…"
           />
         </label>
@@ -147,6 +149,7 @@
         <textarea
           id="motivo-rechazo"
           v-model="motivo"
+          v-restrict="{ tipo: 'texto', max: 500 }"
           rows="3"
           maxlength="500"
           placeholder="Explica brevemente por qué se rechaza la solicitud…"

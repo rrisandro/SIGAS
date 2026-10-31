@@ -81,7 +81,13 @@
           <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
-          <input v-model="filtroBusqueda" type="text" placeholder="Buscar por Familia o Calle..." />
+          <input
+            v-model="filtroBusqueda"
+            v-restrict="{ tipo: 'busqueda', max: 100 }"
+            type="text"
+            maxlength="100"
+            placeholder="Buscar por Familia o Calle..."
+          />
         </div>
       </div>
 

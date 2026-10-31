@@ -20,6 +20,13 @@
       </div>
     </header>
 
+    <div v-if="mensajeExito" class="alert alert--success" role="status">
+      {{ mensajeExito }}
+    </div>
+    <div v-if="errorGeneral" class="alert alert--error" role="alert">
+      {{ errorGeneral }}
+    </div>
+
     <!-- TARJETA DE TABLA PRINCIPAL -->
     <div class="table-card">
       <div class="table-header">
@@ -31,7 +38,13 @@
           <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
-          <input v-model="filtroBusqueda" type="text" placeholder="Buscar por Cédula o Nombre..." />
+          <input
+            v-model="filtroBusqueda"
+            v-restrict="{ tipo: 'busqueda', max: 100 }"
+            type="text"
+            maxlength="100"
+            placeholder="Buscar por Cédula, Código o Nombre..."
+          />
         </div>
       </div>
 
@@ -49,6 +62,7 @@
           <thead>
             <tr>
               <th>Cédula (ID)</th>
+              <th>Código</th>
               <th>Nombre de la Familia</th>
               <th>Calle / Sector</th>
               <th>Estado</th>
@@ -58,6 +72,9 @@
           <tbody>
             <tr v-for="familia in familiasFiltradas" :key="familia.id" class="table-row">
               <td class="id-cell" data-label="Cédula (ID)">V-{{ familia.id }}</td>
+              <td data-label="Código">
+                <span class="code-badge">{{ familia.codigo || '—' }}</span>
+              </td>
               <td class="name-cell" data-label="Nombre de la familia">
                 <div class="avatar">{{ familia.nombre_familia ? familia.nombre_familia.charAt(0).toUpperCase() : 'F' }}</div>
                 <span class="family-name">{{ familia.nombre_familia || 'Sin nombre' }}</span>
@@ -91,16 +108,46 @@
         <span class="modal-sheet-handle" aria-hidden="true"></span>
         <h3>{{ esEdicion ? 'Editar Familia' : 'Registrar Nueva Familia' }}</h3>
         
-        <form @submit.prevent="guardarFamilia" class="modal-form">
+        <form @submit.prevent="guardarFamilia" class="modal-form" novalidate>
+          <div v-if="!esEdicion" class="field">
+            <label class="field-label">Cédula de la Familia</label>
+            <input
+              v-model="form.id"
+              v-restrict="{ tipo: 'digits', max: 10 }"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              minlength="5"
+              maxlength="10"
+              placeholder="Ej: 12345678"
+              required
+              class="input-field"
+            />
+            <small class="field-hint">Solo números, entre 5 y 10 dígitos.</small>
+          </div>
+
+          <div v-else class="field">
+            <label class="field-label">Cédula de la Familia</label>
+            <input :value="form.id" type="text" class="input-field" disabled />
+          </div>
+
+          <div v-if="esEdicion" class="field">
+            <label class="field-label">Código único</label>
+            <input :value="form.codigo || '—'" type="text" class="input-field code-input" disabled />
+          </div>
+
           <div class="field">
             <label class="field-label">Nombre de la Familia</label>
-            <input 
-              v-model="form.nombre_familia" 
-              type="text" 
-              placeholder="Ej: Familia Angarita" 
-              required 
-              class="input-field" 
+            <input
+              v-model="form.nombre_familia"
+              v-restrict="{ tipo: 'nombre', max: 120 }"
+              type="text"
+              placeholder="Ej: Familia Angarita"
+              maxlength="120"
+              required
+              class="input-field"
             />
+            <small class="field-hint">Solo letras y espacios, máximo 120 caracteres.</small>
           </div>
 
           <div class="field">
@@ -118,6 +165,8 @@
             <input type="checkbox" v-model="form.activo" class="checkbox-input" />
           </div>
 
+          <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+
           <div class="btn-group">
             <button type="submit" class="button1" :disabled="guardando">
               {{ guardando ? 'Guardando...' : (esEdicion ? 'Actualizar' : 'Guardar') }}
@@ -133,19 +182,29 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../../composables/supabase.js'
+import {
+  validarCedula,
+  validarNombre,
+} from '../../lib/validation.js'
 
 const familias = ref([])
 const calles = ref([])
 const filtroBusqueda = ref('')
 const loading = ref(true)
 const guardando = ref(false)
+const mensajeExito = ref('')
+const errorGeneral = ref('')
+let exitoTimer = null
 
 // Modales y estado de formulario
 const mostrarModal = ref(false)
 const esEdicion = ref(false)
 const familiaIdSeleccionada = ref(null)
+const formError = ref('')
 
 const form = ref({
+  id: '',
+  codigo: '',
   nombre_familia: '',
   id_calle: null,
   activo: true
@@ -153,6 +212,7 @@ const form = ref({
 
 async function cargarFamilias() {
   loading.value = true
+  errorGeneral.value = ''
   try {
     const { data: callesData } = await supabase
       .from('calles')
@@ -171,6 +231,7 @@ async function cargarFamilias() {
     }
   } catch (e) {
     console.error('Error cargando familias:', e)
+    errorGeneral.value = 'No se pudieron cargar las familias. Intenta nuevamente.'
   } finally {
     loading.value = false
   }
@@ -179,14 +240,18 @@ async function cargarFamilias() {
 function abrirModalCrear() {
   esEdicion.value = false
   familiaIdSeleccionada.value = null
-  form.value = { nombre_familia: '', id_calle: null, activo: true }
+  formError.value = ''
+  form.value = { id: '', codigo: '', nombre_familia: '', id_calle: null, activo: true }
   mostrarModal.value = true
 }
 
 function abrirModalEditar(familia) {
   esEdicion.value = true
   familiaIdSeleccionada.value = familia.id
+  formError.value = ''
   form.value = {
+    id: familia.id,
+    codigo: familia.codigo || '',
     nombre_familia: familia.nombre_familia,
     id_calle: familia.id_calle,
     activo: familia.activo
@@ -195,17 +260,70 @@ function abrirModalEditar(familia) {
 }
 
 function cerrarModal() {
+  if (guardando.value) return
   mostrarModal.value = false
 }
 
+function mostrarExito(mensaje) {
+  mensajeExito.value = mensaje
+  if (exitoTimer) window.clearTimeout(exitoTimer)
+  exitoTimer = window.setTimeout(() => {
+    mensajeExito.value = ''
+  }, 6000)
+}
+
+function mensajeError(err, fallback) {
+  const mensaje = String(err?.message || err?.details || '')
+  if (/duplicate key/i.test(mensaje)) {
+    return 'Ya existe una familia registrada con esa cédula.'
+  }
+  if (/No tienes permiso|42501|row-level security/i.test(mensaje)) {
+    return 'No tienes permisos para gestionar familias.'
+  }
+  return mensaje || fallback
+}
+
 async function guardarFamilia() {
+  formError.value = ''
+  errorGeneral.value = ''
+
+  const nombreError = validarNombre(form.value.nombre_familia, {
+    label: 'El nombre de la familia',
+    max: 120,
+  })
+  if (nombreError) {
+    formError.value = nombreError
+    return
+  }
+
+  if (!form.value.id_calle) {
+    formError.value = 'Selecciona la calle o sector de la familia.'
+    return
+  }
+
+  if (!esEdicion.value) {
+    const cedulaError = validarCedula(form.value.id, {
+      label: 'La cédula de la familia',
+      min: 5,
+      max: 10,
+    })
+    if (cedulaError) {
+      formError.value = cedulaError
+      return
+    }
+    if (Number(form.value.id) <= 0) {
+      formError.value = 'La cédula de la familia no es válida.'
+      return
+    }
+  }
+
   guardando.value = true
 
   if (esEdicion.value) {
     const { error } = await supabase
       .from('familias')
       .update({
-        nombre_familia: form.value.nombre_familia,
+        nombre_familia: form.value.nombre_familia.trim(),
         id_calle: form.value.id_calle,
         activo: form.value.activo
       })
@@ -213,24 +331,36 @@ async function guardarFamilia() {
 
     if (!error) {
       cerrarModal()
-      cargarFamilias()
+      mostrarExito('Familia actualizada correctamente.')
+      await cargarFamilias()
     } else {
-      alert('Error al actualizar familia: ' + error.message)
+      formError.value = mensajeError(error, 'No se pudo actualizar la familia.')
     }
   } else {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('familias')
       .insert([{
-        nombre_familia: form.value.nombre_familia,
+        id: Number(form.value.id),
+        nombre_familia: form.value.nombre_familia.trim(),
         id_calle: form.value.id_calle,
-        activo: true
+        id_cargo: 3,
+        estado: 'aprobado',
+        activo: true,
+        is_deleted: false,
       }])
+      .select()
+      .single()
 
     if (!error) {
       cerrarModal()
-      cargarFamilias()
+      mostrarExito(
+        data?.codigo
+          ? `Familia registrada correctamente. Su código único es ${data.codigo}.`
+          : 'Familia registrada correctamente.'
+      )
+      await cargarFamilias()
     } else {
-      alert('Error al registrar familia: ' + error.message)
+      formError.value = mensajeError(error, 'No se pudo registrar la familia.')
     }
   }
 
@@ -268,6 +398,7 @@ const familiasFiltradas = computed(() => {
   return familias.value.filter(
     (f) =>
       String(f.id).includes(query) ||
+      String(f.codigo || '').toLowerCase().includes(query) ||
       (f.nombre_familia && f.nombre_familia.toLowerCase().includes(query))
   )
 })
@@ -508,6 +639,67 @@ const familiasFiltradas = computed(() => {
 .id-cell { 
   font-weight: 600; 
   color: #0072CE; 
+}
+
+.code-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 4px 9px;
+  border: 1px solid #bae6fd;
+  border-radius: 7px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.code-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #0369a1;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.form-error {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.alert--success {
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.alert--error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .name-cell {

@@ -40,6 +40,9 @@
           v-model="observaciones"
           label="Observaciones"
           placeholder="Opcional"
+          :maxlength="300"
+          restrict="texto"
+          hint="Máximo 300 caracteres."
         />
       </div>
 
@@ -74,6 +77,7 @@ import { useAuth } from '../../composables/useAuth.js'
 import { usePedidos } from '../../composables/usePedidos'
 import { useFamilias } from '../../composables/useFamilias'
 import { supabase } from '../../lib/supabase'
+import { validarTexto } from '../../lib/validation.js'
 
 const { currentUser } = useAuth()
 const { createPedido } = usePedidos()
@@ -208,6 +212,15 @@ async function submit() {
 
   if (!selection.value.complete) {
     error.value = 'Completa todos los campos obligatorios'
+    return
+  }
+
+  const observacionesError = validarTexto(observaciones.value, {
+    label: 'Las observaciones',
+    max: 300,
+  })
+  if (observacionesError) {
+    error.value = observacionesError
     return
   }
 

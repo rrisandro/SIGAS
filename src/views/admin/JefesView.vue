@@ -89,7 +89,13 @@
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0z" />
         </svg>
-        <input v-model="filtroBusqueda" type="search" placeholder="Buscar por cédula, nombre o teléfono…" />
+        <input
+          v-model="filtroBusqueda"
+          v-restrict="{ tipo: 'busqueda', max: 100 }"
+          type="search"
+          maxlength="100"
+          placeholder="Buscar por cédula, código, nombre o teléfono…"
+        />
       </label>
 
       <label class="select-field">
@@ -126,6 +132,7 @@
           <thead>
             <tr>
               <th>Cédula</th>
+              <th>Código</th>
               <th>Nombre completo</th>
               <th>Teléfono</th>
               <th>Calle asignada</th>
@@ -143,6 +150,9 @@
             >
               <td class="id-cell" data-label="Cédula">
                 {{ jefe.ci ? `V-${jefe.ci}` : '—' }}
+              </td>
+              <td data-label="Código">
+                <span class="code-badge">{{ jefe.codigo || '—' }}</span>
               </td>
               <td data-label="Nombre completo">
                 <div class="name-cell">
@@ -231,6 +241,10 @@
               <strong>{{ nombreCalle(jefe.id_calle) }}</strong>
             </div>
             <div>
+              <span>Código</span>
+              <strong class="code-value">{{ jefe.codigo || '—' }}</strong>
+            </div>
+            <div>
               <span>Teléfono</span>
               <strong>{{ jefe.telefono || 'No indicado' }}</strong>
             </div>
@@ -291,21 +305,48 @@
             <button type="button" class="modal-close" aria-label="Cerrar" @click="cerrarModal">×</button>
           </div>
 
-          <form class="modal-form" @submit.prevent="guardar">
+          <form class="modal-form" @submit.prevent="guardar" novalidate>
             <div class="form-grid">
               <label class="form-field form-field--full">
                 <span>Nombre completo *</span>
-                <input v-model="form.nombre" type="text" maxlength="120" placeholder="Nombre y apellido" required />
+                <input
+                  v-model="form.nombre"
+                  v-restrict="{ tipo: 'nombre', max: 120 }"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Nombre y apellido"
+                  required
+                />
+                <small>Solo letras y espacios, máximo 120 caracteres.</small>
+              </label>
+
+              <label v-if="modoEdicion" class="form-field">
+                <span>Código único</span>
+                <input :value="form.codigo || '—'" type="text" class="code-input" disabled />
               </label>
 
               <label class="form-field">
                 <span>Cédula</span>
-                <input v-model="form.ci" type="text" maxlength="20" placeholder="Ej. 12345678" />
+                <input
+                  v-model="form.ci"
+                  v-restrict="{ tipo: 'digits', max: 10 }"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="10"
+                  placeholder="Ej. 12345678"
+                />
               </label>
 
               <label class="form-field">
                 <span>Teléfono</span>
-                <input v-model="form.telefono" type="tel" maxlength="30" placeholder="0414-1234567" />
+                <input
+                  v-model="form.telefono"
+                  v-restrict="{ tipo: 'digits', max: 12 }"
+                  type="tel"
+                  inputmode="numeric"
+                  maxlength="12"
+                  placeholder="04141234567"
+                />
               </label>
 
               <label class="form-field">
@@ -322,7 +363,9 @@
                 <span>ID de acceso (opcional)</span>
                 <input
                   v-model="form.auth_id"
+                  v-restrict="{ tipo: 'uuid', max: 36 }"
                   type="text"
+                  maxlength="36"
                   placeholder="UUID de auth.users"
                   autocomplete="off"
                 />
@@ -368,6 +411,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
 import { useJefesCalle } from '../../composables/useJefesCalle.js'
+import {
+  validarCedula,
+  validarNombre,
+  validarTelefono,
+  validarUuid,
+} from '../../lib/validation.js'
 
 const {
   jefes,
@@ -395,6 +444,7 @@ const modoEdicion = ref(false)
 const formError = ref('')
 const form = reactive({
   id_jefe_calle: null,
+  codigo: '',
   nombre: '',
   ci: '',
   telefono: '',
@@ -453,7 +503,7 @@ const jefesFiltrados = computed(() => {
       return false
     }
     if (!q) return true
-    return [jefe.nombre, jefe.ci, jefe.telefono]
+    return [jefe.nombre, jefe.ci, jefe.codigo, jefe.telefono]
       .some((value) => String(value || '').toLowerCase().includes(q))
   })
 })
@@ -522,6 +572,7 @@ function abrirCrear() {
   formError.value = ''
   Object.assign(form, {
     id_jefe_calle: null,
+    codigo: '',
     nombre: '',
     ci: '',
     telefono: '',
@@ -537,6 +588,7 @@ function abrirEditar(jefe) {
   formError.value = ''
   Object.assign(form, {
     id_jefe_calle: jefe.id_jefe_calle,
+    codigo: jefe.codigo || '',
     nombre: jefe.nombre || '',
     ci: jefe.ci || '',
     telefono: jefe.telefono || '',
@@ -555,13 +607,40 @@ function cerrarModal() {
 async function guardar() {
   formError.value = ''
 
-  if (!form.nombre.trim()) {
-    formError.value = 'El nombre del Jefe de Calle es obligatorio.'
+  const nombreError = validarNombre(form.nombre, {
+    label: 'El nombre del Jefe de Calle',
+    max: 120,
+  })
+  if (nombreError) {
+    formError.value = nombreError
     return
   }
 
-  if (form.auth_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(form.auth_id.trim())) {
-    formError.value = 'El ID de acceso debe ser un UUID válido de Supabase Auth.'
+  const cedulaError = validarCedula(form.ci, {
+    label: 'La cédula',
+    required: false,
+    min: 5,
+    max: 10,
+  })
+  if (cedulaError) {
+    formError.value = cedulaError
+    return
+  }
+
+  const telefonoError = validarTelefono(form.telefono, {
+    label: 'El teléfono',
+    required: false,
+    min: 7,
+    max: 12,
+  })
+  if (telefonoError) {
+    formError.value = telefonoError
+    return
+  }
+
+  const uuidError = validarUuid(form.auth_id, { required: false })
+  if (uuidError) {
+    formError.value = uuidError
     return
   }
 
@@ -605,7 +684,9 @@ async function guardar() {
   mostrarExito(
     modoEdicion.value
       ? `Jefe de Calle ${result.nombre} actualizado correctamente.`
-      : `Jefe de Calle ${result.nombre} registrado correctamente.`
+      : result.codigo
+        ? `Jefe de Calle ${result.nombre} registrado correctamente. Su código único es ${result.codigo}.`
+        : `Jefe de Calle ${result.nombre} registrado correctamente.`
   )
   await cargar()
 }
@@ -1090,6 +1171,31 @@ function estadoClase(jefe) {
   color: #0369a1;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.code-badge,
+.code-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 4px 9px;
+  border: 1px solid #bae6fd;
+  border-radius: 7px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.code-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #0369a1;
+  text-transform: uppercase;
 }
 
 .name-cell {

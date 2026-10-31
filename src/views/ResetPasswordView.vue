@@ -64,9 +64,11 @@
               <input
                 id="new-password"
                 v-model="password"
+                v-restrict="{ tipo: 'password', max: 72 }"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="new-password"
                 minlength="6"
+                maxlength="72"
                 placeholder="Mínimo 6 caracteres"
                 required
               />
@@ -87,9 +89,11 @@
               <input
                 id="confirm-password"
                 v-model="passwordConfirm"
+                v-restrict="{ tipo: 'password', max: 72 }"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="new-password"
                 minlength="6"
+                maxlength="72"
                 placeholder="Repite la contraseña"
                 required
               />
@@ -113,6 +117,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
+import { validarPassword } from '../lib/validation.js'
 import logoImage from '../assets/sigas-logo.jpeg'
 
 const checking = ref(true)
@@ -162,8 +167,9 @@ onBeforeUnmount(() => {
 async function handleSubmit() {
   error.value = ''
 
-  if (password.value.length < 6) {
-    error.value = 'La contraseña debe tener al menos 6 caracteres.'
+  const passwordError = validarPassword(password.value)
+  if (passwordError) {
+    error.value = passwordError
     return
   }
   if (password.value !== passwordConfirm.value) {

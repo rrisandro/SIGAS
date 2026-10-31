@@ -56,21 +56,26 @@
         <span class="modal-sheet-handle" aria-hidden="true"></span>
         <h3>{{ esEdicion ? 'Editar Calle' : 'Registrar Nueva Calle' }}</h3>
         
-        <form @submit.prevent="guardarCalle" class="modal-form">
+        <form @submit.prevent="guardarCalle" class="modal-form" novalidate>
           <div class="field">
-            <input 
-              v-model="nombreCalle" 
-              type="text" 
-              placeholder="Nombre de la Calle" 
-              required 
-              class="input-field" 
+            <input
+              v-model="nombreCalle"
+              v-restrict="{ tipo: 'texto', max: 80 }"
+              type="text"
+              maxlength="80"
+              placeholder="Nombre de la Calle"
+              required
+              class="input-field"
             />
+            <small class="field-hint">Máximo 80 caracteres.</small>
           </div>
 
           <div v-if="esEdicion" class="field flex-row">
             <label class="field-label">Calle Activa:</label>
             <input type="checkbox" v-model="estadoCalle" class="checkbox-input" />
           </div>
+
+          <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
 
           <div class="btn-group">
             <button type="submit" class="button1" :disabled="guardando">
@@ -87,6 +92,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../../composables/supabase.js'
+import { validarTexto } from '../../lib/validation.js'
 
 const calles = ref([])
 const loading = ref(true)
@@ -98,6 +104,7 @@ const esEdicion = ref(false)
 const calleSeleccionadaId = ref(null)
 const nombreCalle = ref('')
 const estadoCalle = ref(true)
+const formError = ref('')
 
 async function cargarCalles() {
   loading.value = true
@@ -115,6 +122,7 @@ function abrirModalCrear() {
   calleSeleccionadaId.value = null
   nombreCalle.value = ''
   estadoCalle.value = true
+  formError.value = ''
   mostrarModal.value = true
 }
 
@@ -123,6 +131,7 @@ function abrirModalEditar(calle) {
   calleSeleccionadaId.value = calle.id_calle
   nombreCalle.value = calle.nombre
   estadoCalle.value = calle.activo
+  formError.value = ''
   mostrarModal.value = true
 }
 
@@ -131,14 +140,28 @@ function cerrarModal() {
 }
 
 async function guardarCalle() {
+  formError.value = ''
+
+  const nombreError = validarTexto(nombreCalle.value, {
+    label: 'El nombre de la calle',
+    min: 2,
+    max: 80,
+    required: true,
+  })
+  if (nombreError) {
+    formError.value = nombreError
+    return
+  }
+
   guardando.value = true
+  const nombre = nombreCalle.value.trim()
 
   if (esEdicion.value) {
     // Actualización de registro existente
     const { error } = await supabase
       .from('calles')
       .update({ 
-        nombre: nombreCalle.value,
+        nombre,
         activo: estadoCalle.value
       })
       .eq('id_calle', calleSeleccionadaId.value)
@@ -147,19 +170,19 @@ async function guardarCalle() {
       cerrarModal()
       cargarCalles()
     } else {
-      alert('Error al actualizar la calle: ' + error.message)
+      formError.value = 'Error al actualizar la calle: ' + error.message
     }
   } else {
     // Inserción de nuevo registro
     const { error } = await supabase
       .from('calles')
-      .insert([{ nombre: nombreCalle.value, activo: true }])
+      .insert([{ nombre, activo: true }])
 
     if (!error) {
       cerrarModal()
       cargarCalles()
     } else {
-      alert('Error al crear la calle: ' + error.message)
+      formError.value = 'Error al crear la calle: ' + error.message
     }
   }
 
@@ -399,6 +422,24 @@ onMounted(cargarCalles)
   font-size: 0.85rem;
   color: #475569;
   font-weight: 500;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.form-error {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .checkbox-input {

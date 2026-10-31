@@ -11,6 +11,8 @@
         <BaseInput
           v-model="search"
           :placeholder="searchPlaceholder"
+          :maxlength="100"
+          restrict="busqueda"
           class="cdt-search"
         />
       </div>

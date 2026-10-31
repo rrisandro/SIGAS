@@ -27,8 +27,10 @@
           <input
             id="login-email"
             v-model="loginEmail"
+            v-restrict="{ tipo: 'email', max: 254 }"
             type="email"
             class="input-field"
+            maxlength="254"
             placeholder="Correo electrónico"
             autocomplete="email"
             aria-label="Correo electrónico"
@@ -45,8 +47,10 @@
           <input
             id="login-password"
             v-model="loginPassword"
+            v-restrict="{ tipo: 'password', max: 72 }"
             :type="showPassword ? 'text' : 'password'"
             class="input-field"
+            maxlength="72"
             placeholder="Contraseña"
             autocomplete="current-password"
             aria-label="Contraseña"
@@ -105,8 +109,10 @@
               <input
                 id="forgot-email"
                 v-model="forgotEmail"
+                v-restrict="{ tipo: 'email', max: 254 }"
                 type="email"
                 class="input-field"
+                maxlength="254"
                 placeholder="Correo electrónico"
                 autocomplete="email"
                 aria-label="Correo electrónico"
@@ -146,9 +152,12 @@
                 <input
                   id="reg-cedula"
                   v-model="regCedula"
-                  type="number"
+                  v-restrict="{ tipo: 'digits', max: 10 }"
+                  type="text"
                   inputmode="numeric"
-                  min="1"
+                  pattern="[0-9]*"
+                  minlength="5"
+                  maxlength="10"
                   class="input-field"
                   placeholder="Cédula (ID de la Familia)"
                   aria-label="Cédula"
@@ -160,8 +169,10 @@
                 <input
                   id="reg-nombre"
                   v-model="regNombre"
+                  v-restrict="{ tipo: 'nombre', max: 120 }"
                   type="text"
                   class="input-field"
+                  maxlength="120"
                   placeholder="Nombre y Apellido"
                   autocomplete="name"
                   aria-label="Nombre y apellido"
@@ -173,8 +184,10 @@
                 <input
                   id="reg-email"
                   v-model="regEmail"
+                  v-restrict="{ tipo: 'email', max: 254 }"
                   type="email"
                   class="input-field"
+                  maxlength="254"
                   placeholder="Correo Electrónico"
                   autocomplete="email"
                   aria-label="Correo electrónico"
@@ -186,7 +199,10 @@
                 <input
                   id="reg-telefono"
                   v-model="regTelefono"
+                  v-restrict="{ tipo: 'digits', max: 12 }"
                   type="tel"
+                  inputmode="numeric"
+                  maxlength="12"
                   class="input-field"
                   placeholder="Teléfono"
                   autocomplete="tel"
@@ -213,9 +229,11 @@
                 <input
                   id="reg-personas"
                   v-model="regPersonas"
-                  type="number"
+                  v-restrict="{ tipo: 'digits', max: 2 }"
+                  type="text"
                   inputmode="numeric"
-                  min="1"
+                  pattern="[0-9]*"
+                  maxlength="2"
                   class="input-field"
                   placeholder="Personas en el hogar"
                   aria-label="Personas en el hogar"
@@ -227,8 +245,10 @@
               <input
                 id="reg-direccion"
                 v-model="regDireccion"
+                v-restrict="{ tipo: 'texto', max: 200 }"
                 type="text"
                 class="input-field"
+                maxlength="200"
                 placeholder="Dirección de la vivienda"
                 autocomplete="street-address"
                 aria-label="Dirección de la vivienda"
@@ -240,8 +260,10 @@
                 <input
                   id="reg-password"
                   v-model="regPassword"
+                  v-restrict="{ tipo: 'password', max: 72 }"
                   :type="showRegPassword ? 'text' : 'password'"
                   class="input-field"
+                  maxlength="72"
                   placeholder="Contraseña"
                   autocomplete="new-password"
                   minlength="6"
@@ -268,8 +290,10 @@
                 <input
                   id="reg-password-confirm"
                   v-model="regPasswordConfirm"
+                  v-restrict="{ tipo: 'password', max: 72 }"
                   :type="showRegPassword ? 'text' : 'password'"
                   class="input-field"
+                  maxlength="72"
                   placeholder="Confirmar contraseña"
                   autocomplete="new-password"
                   minlength="6"
@@ -301,6 +325,15 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { PASSWORD_RESET_REDIRECT, supabase } from '../lib/supabase.js'
 import { useAuth } from '../composables/useAuth.js'
+import {
+  validarCedula,
+  validarEmail,
+  validarEntero,
+  validarNombre,
+  validarPassword,
+  validarTelefono,
+  validarTexto,
+} from '../lib/validation.js'
 import logoImage from '../assets/sigas-logo.jpeg'
 
 const router = useRouter()
@@ -435,6 +468,18 @@ function mensajeDeError(err, fallback) {
 async function handleLogin() {
   error.value = ''
   notice.value = ''
+
+  const emailError = validarEmail(loginEmail.value)
+  if (emailError) {
+    error.value = emailError
+    return
+  }
+
+  if (!loginPassword.value) {
+    error.value = 'La contraseña es obligatoria.'
+    return
+  }
+
   loading.value = true
 
   try {
@@ -482,6 +527,7 @@ async function handleLogin() {
           activo: jefe.activo,
           estado: 'aprobado',
           is_deleted: jefe.is_deleted,
+          codigo: jefe.codigo || null,
         }
       }
     }
@@ -522,6 +568,7 @@ async function handleLogin() {
       rol,
       idCalle: perfilFinal.id_calle || null,
       estado,
+      codigo: perfilFinal.codigo || null,
     })
 
     const rutas = {
@@ -549,8 +596,9 @@ async function handleForgotPassword() {
   forgotNotice.value = ''
   const email = forgotEmail.value.trim()
 
-  if (!email) {
-    forgotError.value = 'Escribe tu correo electrónico.'
+  const emailError = validarEmail(email)
+  if (emailError) {
+    forgotError.value = emailError
     return
   }
 
@@ -577,22 +625,40 @@ async function handleForgotPassword() {
 }
 
 async function insertarRegistroDirecto(authUserId, payload) {
-  const { error: insertError } = await supabase.from('familias').insert([
-    {
-      id: payload.p_id,
-      auth_id: authUserId,
-      nombre_familia: payload.p_nombre,
-      id_calle: payload.p_id_calle,
-      id_cargo: 3,
-      activo: false,
-      estado: 'pendiente',
-      telefono: payload.p_telefono,
-      direccion: payload.p_direccion,
-      num_personas: payload.p_personas,
-      email: payload.p_email,
-      is_deleted: false,
-    },
-  ])
+  const registro = {
+    id: payload.p_id,
+    auth_id: authUserId,
+    nombre_familia: payload.p_nombre,
+    id_calle: payload.p_id_calle,
+    id_cargo: 3,
+    activo: false,
+    estado: 'pendiente',
+    telefono: payload.p_telefono,
+    direccion: payload.p_direccion,
+    num_personas: payload.p_personas,
+    email: payload.p_email,
+    is_deleted: false,
+  }
+
+  let codigo = null
+  let insertError = null
+
+  // Si la migración de códigos ya está aplicada, recuperamos el código.
+  const conCodigo = await supabase
+    .from('familias')
+    .insert([registro])
+    .select('codigo')
+    .maybeSingle()
+
+  insertError = conCodigo.error
+
+  if (insertError && /codigo/i.test(insertError.message || '')) {
+    // Compatibilidad con bases de datos donde aún no existe la columna.
+    const sinCodigo = await supabase.from('familias').insert([registro])
+    insertError = sinCodigo.error
+  } else {
+    codigo = conCodigo.data?.codigo || null
+  }
 
   if (insertError) throw insertError
 
@@ -607,6 +673,7 @@ async function insertarRegistroDirecto(authUserId, payload) {
 
   const jefeZona = jefe?.[0]
   if (jefeZona?.auth_id) {
+    const referenciaCodigo = codigo ? `, código ${codigo}` : ''
     const { error: notifError } = await supabase.from('notificaciones').insert([
       {
         destinatario_auth_id: jefeZona.auth_id,
@@ -614,11 +681,12 @@ async function insertarRegistroDirecto(authUserId, payload) {
         id_familia: payload.p_id,
         tipo: 'registro_familia',
         titulo: 'Nuevo registro pendiente',
-        mensaje: `La familia ${payload.p_nombre} (cédula ${payload.p_id}) solicitó registro en tu calle.`,
+        mensaje: `La familia ${payload.p_nombre} (cédula ${payload.p_id}${referenciaCodigo}) solicitó registro en tu calle.`,
         metadata: {
           id_familia: payload.p_id,
           id_calle: payload.p_id_calle,
           email: payload.p_email,
+          codigo,
         },
       },
     ])
@@ -627,7 +695,7 @@ async function insertarRegistroDirecto(authUserId, payload) {
     }
   }
 
-  return { notificado: Boolean(jefeZona?.auth_id) }
+  return { notificado: Boolean(jefeZona?.auth_id), codigo }
 }
 
 // Proceso de Registro Completo
@@ -635,30 +703,39 @@ async function handleRegister() {
   registerError.value = ''
   registerNotice.value = ''
 
-  const cedula = Number(regCedula.value)
+  const cedula = regCedula.value.trim()
   const email = regEmail.value.trim()
   const nombre = regNombre.value.trim()
+  const telefono = regTelefono.value.trim()
+  const direccion = regDireccion.value.trim()
+  const personas = regPersonas.value.trim()
 
-  if (!Number.isInteger(cedula) || cedula <= 0) {
+  const errores = [
+    validarCedula(cedula),
+    validarNombre(nombre, { label: 'El nombre' }),
+    validarEmail(email),
+    validarTelefono(telefono),
+    validarTexto(direccion, { label: 'La dirección', max: 200 }),
+    validarEntero(personas, { label: 'El número de personas', min: 1, max: 30 }),
+    validarPassword(regPassword.value),
+  ]
+
+  const primerError = errores.find(Boolean)
+  if (primerError) {
+    registerError.value = primerError
+    return
+  }
+
+  if (Number(cedula) <= 0) {
     registerError.value = 'Ingresa una cédula válida.'
     return
   }
-  if (!nombre) {
-    registerError.value = 'Ingresa tu nombre y apellido.'
-    return
-  }
-  if (!email) {
-    registerError.value = 'Ingresa tu correo electrónico.'
-    return
-  }
+
   if (!regCalle.value) {
     registerError.value = 'Selecciona tu calle o sector.'
     return
   }
-  if (regPassword.value.length < 6) {
-    registerError.value = 'La contraseña debe tener al menos 6 caracteres.'
-    return
-  }
+
   if (regPassword.value !== regPasswordConfirm.value) {
     registerError.value = 'Las contraseñas no coinciden.'
     return
@@ -674,7 +751,7 @@ async function handleRegister() {
       options: {
         data: {
           nombre,
-          cedula,
+          cedula: Number(cedula),
         },
       },
     })
@@ -691,13 +768,13 @@ async function handleRegister() {
 
     // 2. Registrar la familia en estado PENDIENTE.
     const payload = {
-      p_id: cedula,
+      p_id: Number(cedula),
       p_auth_id: authData.user.id,
       p_nombre: nombre,
       p_id_calle: Number(regCalle.value),
-      p_telefono: regTelefono.value.trim() || null,
-      p_direccion: regDireccion.value.trim() || null,
-      p_personas: regPersonas.value ? Number(regPersonas.value) : null,
+      p_telefono: telefono || null,
+      p_direccion: direccion || null,
+      p_personas: personas ? Number(personas) : null,
       p_email: email,
     }
 
@@ -728,9 +805,14 @@ async function handleRegister() {
     }
 
     const notificado = resultado?.notificado !== false
-    registerNotice.value = notificado
-      ? 'Registro enviado. Quedó en estado PENDIENTE y el Jefe de Calle de tu zona recibió una notificación.'
-      : 'Registro enviado. Quedó en estado PENDIENTE. Aún no hay un Jefe de Calle asignado a tu zona; el administrador lo revisará.'
+    const codigo = String(resultado?.codigo || '').trim().toUpperCase()
+    const mensajeBase = notificado
+      ? 'Quedó en estado PENDIENTE y el Jefe de Calle de tu zona recibió una notificación.'
+      : 'Quedó en estado PENDIENTE. Aún no hay un Jefe de Calle asignado a tu zona; el administrador lo revisará.'
+
+    registerNotice.value = codigo
+      ? `Registro enviado. Tu código de familia es ${codigo}. Guárdalo para identificar tu registro. ${mensajeBase}`
+      : `Registro enviado. ${mensajeBase}`
 
     notice.value = registerNotice.value
     loginEmail.value = email

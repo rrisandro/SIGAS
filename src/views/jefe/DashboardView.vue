@@ -7,6 +7,11 @@
       </p>
     </div>
 
+    <div v-if="!cargando && jefe?.codigo" class="code-banner" aria-label="Código único de Jefe de Calle">
+      <span>Tu código de Jefe de Calle</span>
+      <strong>{{ jefe.codigo }}</strong>
+    </div>
+
     <!-- Alerta si no se encuentra la asignación de calle -->
     <div v-if="!cargando && sinCalleAsignada" class="alert-banner alert-banner--warning">
       ⚠️ <strong>Atención:</strong> Tu usuario de Jefe de Calle no tiene una calle vinculada en la base de datos. Pide al administrador que vincule tu usuario en la sección de Calles.
@@ -220,6 +225,37 @@ onMounted(() => {
   border-radius: 0.75rem;
   color: #854d0e;
   font-size: 0.88rem;
+}
+
+.code-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #f0f9ff;
+}
+
+.code-banner span {
+  color: #0369a1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.code-banner strong {
+  padding: 4px 12px;
+  border: 1px solid #7dd3fc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0369a1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
 }
 
 .alert-banner--warning {
