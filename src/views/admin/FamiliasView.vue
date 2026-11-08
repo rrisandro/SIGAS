@@ -99,6 +99,9 @@
                 </span>
               </td>
               <td data-label="Acciones" class="actions-cell">
+                <button class="btn-jefe" @click="abrirModalJefe(familia)">
+                  {{ jefeDeFamilia(familia) ? 'Editar Jefe' : 'Asignar Jefe' }}
+                </button>
                 <button class="btn-edit" @click="abrirModalEditar(familia)">
                    Editar
                 </button>
@@ -186,6 +189,94 @@
         </form>
       </div>
     </div>
+
+    <!-- MODAL ASIGNAR / EDITAR JEFE DE FAMILIA -->
+    <div v-if="mostrarModalJefe" class="modal-overlay" @click.self="cerrarModalJefe">
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <span class="modal-sheet-handle" aria-hidden="true"></span>
+        <h3>{{ jefeEditando ? 'Editar Jefe de Familia' : 'Asignar Jefe de Familia' }}</h3>
+        <p class="modal-subtitle">
+          {{ familiaJefeSeleccionada?.nombre_familia || 'Familia' }}
+          — V-{{ familiaJefeSeleccionada?.id }}
+        </p>
+
+        <form @submit.prevent="guardarJefeFamilia" class="modal-form" novalidate>
+          <div class="field">
+            <label class="field-label">Nombre del Jefe de Familia</label>
+            <input
+              v-model="jefeForm.nombre"
+              v-restrict="{ tipo: 'nombre', max: 120 }"
+              type="text"
+              maxlength="120"
+              placeholder="Ej: María Pérez"
+              required
+              class="input-field"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Cédula</label>
+            <input
+              :value="familiaJefeSeleccionada?.id || ''"
+              type="text"
+              class="input-field"
+              disabled
+            />
+            <small class="field-hint">La cédula identifica a la familia en SIGAS.</small>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Teléfono</label>
+            <input
+              v-model="jefeForm.telefono"
+              v-restrict="{ tipo: 'digits', max: 12 }"
+              type="tel"
+              inputmode="numeric"
+              maxlength="12"
+              placeholder="04141234567"
+              class="input-field"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Correo electrónico</label>
+            <input
+              v-model="jefeForm.email"
+              v-restrict="{ tipo: 'email', max: 254 }"
+              type="email"
+              maxlength="254"
+              placeholder="correo@ejemplo.com"
+              required
+              class="input-field"
+            />
+            <small class="field-hint">
+              La persona debe registrarse en el login con este mismo correo.
+            </small>
+          </div>
+
+          <p v-if="jefeEditando && !jefeEditando.activo" class="jefe-modal-note">
+            Este Jefe de Familia está <strong>pendiente de cuenta</strong>. La persona debe
+            registrarse desde el login con la cédula V-{{ familiaJefeSeleccionada?.id }} y este
+            correo. Luego podrás aprobarlo desde el panel del Jefe de Calle.
+          </p>
+          <p v-else-if="jefeEditando" class="jefe-modal-note jefe-modal-note--ok">
+            Cuenta de acceso vinculada. Los cambios de nombre, teléfono y correo son solo de
+            contacto; no cambian la contraseña de la persona.
+          </p>
+
+          <p v-if="jefeFormError" class="form-error" role="alert">{{ jefeFormError }}</p>
+
+          <div class="btn-group">
+            <button type="submit" class="button1" :disabled="jefeGuardando">
+              {{ jefeGuardando ? 'Guardando...' : (jefeEditando ? 'Guardar cambios' : 'Asignar Jefe') }}
+            </button>
+            <button type="button" class="button2" :disabled="jefeGuardando" @click="cerrarModalJefe">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -194,7 +285,9 @@ import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../../composables/supabase.js'
 import {
   validarCedula,
+  validarEmail,
   validarNombre,
+  validarTelefono,
 } from '../../lib/validation.js'
 
 const familias = ref([])
@@ -221,6 +314,18 @@ const form = ref({
   activo: true
 })
 
+// Modal para asignar / editar al Jefe de Familia
+const mostrarModalJefe = ref(false)
+const jefeEditando = ref(null)
+const familiaJefeSeleccionada = ref(null)
+const jefeFormError = ref('')
+const jefeGuardando = ref(false)
+const jefeForm = ref({
+  nombre: '',
+  telefono: '',
+  email: '',
+})
+
 const jefesPorFamilia = computed(() => {
   const mapa = new Map()
   for (const jefe of jefesFamilia.value) {
@@ -245,6 +350,197 @@ const jefesPorFamilia = computed(() => {
 
 function jefeDeFamilia(familia) {
   return jefesPorFamilia.value.get(familia.id) || null
+}
+
+function abrirModalJefe(familia) {
+  const jefe = jefeDeFamilia(familia)
+  familiaJefeSeleccionada.value = familia
+  jefeEditando.value = jefe || null
+  jefeFormError.value = ''
+  jefeForm.value = {
+    nombre: jefe?.nombre || familia.nombre_familia || '',
+    telefono: jefe?.telefono || familia.telefono || '',
+    email: familia.email || '',
+  }
+  mostrarModalJefe.value = true
+}
+
+function cerrarModalJefe() {
+  if (jefeGuardando.value) return
+  mostrarModalJefe.value = false
+  jefeEditando.value = null
+  familiaJefeSeleccionada.value = null
+}
+
+function esRpcInexistente(error) {
+  if (!error) return false
+  const codigo = String(error.code || '')
+  const mensaje = String(error.message || error.details || '')
+  return (
+    codigo === 'PGRST202' ||
+    /could not find the function|function .* does not exist|schema cache/i.test(mensaje)
+  )
+}
+
+async function actualizarJefeFallback(familia, nombre, telefono, email) {
+  const { error: jefeError } = await supabase
+    .from('jefes_familia')
+    .update({
+      nombre,
+      telefono: telefono || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id_jefe_familia', jefeEditando.value.id_jefe_familia)
+
+  if (jefeError) throw jefeError
+
+  const { error: familiaError } = await supabase
+    .from('familias')
+    .update({
+      email,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', familia.id)
+
+  if (familiaError) throw familiaError
+}
+
+async function registrarJefeFallback(familia, nombre, telefono, email) {
+  const { data: jefeExistente, error: consultaError } = await supabase
+    .from('jefes_familia')
+    .select('*')
+    .eq('id_familia', familia.id)
+    .eq('is_deleted', false)
+    .order('activo', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (consultaError) throw consultaError
+  if (jefeExistente?.activo) {
+    throw new Error('La familia ya tiene un Jefe de Familia activo.')
+  }
+
+  const datosJefe = {
+    id_familia: familia.id,
+    auth_id: null,
+    id_calle: familia.id_calle,
+    nombre,
+    ci: String(familia.id),
+    telefono: telefono || null,
+    activo: false,
+    estado: 'pendiente',
+    is_deleted: false,
+  }
+
+  if (jefeExistente) {
+    const { error: updateError } = await supabase
+      .from('jefes_familia')
+      .update(datosJefe)
+      .eq('id_jefe_familia', jefeExistente.id_jefe_familia)
+    if (updateError) throw updateError
+  } else {
+    const { error: insertError } = await supabase
+      .from('jefes_familia')
+      .insert([datosJefe])
+    if (insertError) throw insertError
+  }
+
+  if (email) {
+    const { error: familiaError } = await supabase
+      .from('familias')
+      .update({
+        email,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', familia.id)
+      .is('auth_id', null)
+
+    if (familiaError) throw familiaError
+  }
+}
+
+async function guardarJefeFamilia() {
+  jefeFormError.value = ''
+
+  const familia = familiaJefeSeleccionada.value
+  if (!familia) {
+    jefeFormError.value = 'No se identificó la familia.'
+    return
+  }
+
+  const nombre = jefeForm.value.nombre.trim()
+  const telefono = jefeForm.value.telefono.trim()
+  const email = jefeForm.value.email.trim()
+
+  const errores = [
+    validarNombre(nombre, { label: 'El nombre del Jefe de Familia', max: 120 }),
+    validarTelefono(telefono, {
+      label: 'El teléfono',
+      required: false,
+      min: 7,
+      max: 12,
+    }),
+    validarEmail(email, { label: 'El correo electrónico' }),
+  ]
+
+  const primerError = errores.find(Boolean)
+  if (primerError) {
+    jefeFormError.value = primerError
+    return
+  }
+
+  jefeGuardando.value = true
+  let mensaje = ''
+
+  try {
+    if (jefeEditando.value) {
+      const { error } = await supabase.rpc('actualizar_jefe_familia', {
+        p_id_jefe_familia: jefeEditando.value.id_jefe_familia,
+        p_nombre: nombre,
+        p_telefono: telefono || null,
+        p_email: email,
+      })
+
+      if (error) {
+        if (!esRpcInexistente(error)) throw error
+        await actualizarJefeFallback(familia, nombre, telefono, email)
+      }
+
+      mensaje = 'Jefe de Familia actualizado correctamente.'
+    } else {
+      const { error } = await supabase.rpc('registrar_jefe_familia', {
+        p_id_familia: familia.id,
+        p_nombre: nombre,
+        p_telefono: telefono || null,
+        p_email: email,
+        p_auth_id: null,
+      })
+
+      if (error) {
+        if (!esRpcInexistente(error)) throw error
+        await registrarJefeFallback(familia, nombre, telefono, email)
+      }
+
+      mensaje = `Jefe de Familia asignado. La persona debe registrarse en el login con la cédula V-${familia.id} y el correo ${email}.`
+    }
+  } catch (err) {
+    jefeFormError.value = mensajeError(
+      err,
+      jefeEditando.value
+        ? 'No se pudo actualizar el Jefe de Familia.'
+        : 'No se pudo asignar el Jefe de Familia.'
+    )
+    return
+  } finally {
+    jefeGuardando.value = false
+  }
+
+  mostrarModalJefe.value = false
+  jefeEditando.value = null
+  familiaJefeSeleccionada.value = null
+  mostrarExito(mensaje)
+  await cargarFamilias()
 }
 
 async function cargarFamilias() {
@@ -885,6 +1181,28 @@ const familiasFiltradas = computed(() => {
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
 }
 
+.btn-jefe {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-jefe:hover {
+  background-color: #6d28d9;
+  color: #ffffff;
+  border-color: #6d28d9;
+  box-shadow: 0 2px 6px rgba(109, 40, 217, 0.25);
+}
+
 /* ESTILOS DEL MODAL */
 .field-label {
   font-size: 0.85rem;
@@ -967,6 +1285,31 @@ const familiasFiltradas = computed(() => {
   font-weight: 600;
   margin-bottom: 1.25rem;
   text-align: center;
+}
+
+.modal-subtitle {
+  margin: -0.85rem 0 1.25rem;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.jefe-modal-note {
+  margin: 0;
+  padding: 10px 13px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.jefe-modal-note--ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 .modal-form {

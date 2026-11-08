@@ -305,6 +305,13 @@
             <div class="record-actions">
               <button
                 type="button"
+                class="btn-action btn-action--outline"
+                @click="openEditarJefe(item)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
                 class="btn-action btn-action--danger"
                 @click="openBaja(item)"
               >
@@ -435,7 +442,9 @@
           <div class="edit-head">
             <div>
               <p class="edit-eyebrow">Jefe de Familia</p>
-              <h2 id="jefe-title">Registrar representante</h2>
+              <h2 id="jefe-title">
+                {{ jefeEditando ? 'Editar Jefe de Familia' : 'Registrar representante' }}
+              </h2>
             </div>
             <button type="button" class="edit-close" aria-label="Cerrar" @click="closeRegistrarJefe">
               ×
@@ -446,6 +455,7 @@
             <div class="form-field">
               <label for="jefe-familia">Familia</label>
               <select
+                v-if="!jefeEditando"
                 id="jefe-familia"
                 v-model="jefeForm.id_familia"
                 required
@@ -456,7 +466,14 @@
                   {{ familia.nombre_familia || 'Sin nombre' }} — V-{{ familia.id }}
                 </option>
               </select>
-              <small v-if="!familiasSinJefe.length">
+              <input
+                v-else
+                id="jefe-familia"
+                :value="`${familiaJefeSeleccionada?.nombre_familia || 'Sin nombre'} — V-${cedulaJefeSeleccionada}`"
+                type="text"
+                disabled
+              />
+              <small v-if="!jefeEditando && !familiasSinJefe.length">
                 Todas las familias de tu calle ya tienen un Jefe de Familia registrado.
               </small>
             </div>
@@ -505,11 +522,16 @@
               </div>
             </div>
 
-            <p class="jefe-note">
+            <p v-if="!jefeEditando" class="jefe-note">
               <strong>Importante:</strong> al guardar, el Jefe de Familia queda
               <strong>pendiente de cuenta</strong>. La persona debe entrar a «Registrarse» en la
               pantalla de inicio con la cédula <strong>V-{{ cedulaJefeSeleccionada || '—' }}</strong>
               y el correo indicado. Después podrás aprobarla en la pestaña «Registros».
+            </p>
+            <p v-else class="jefe-note jefe-note--edit">
+              <strong>Editando datos de contacto.</strong> No se cambia la cuenta de acceso ni el
+              estado del registro. Si la persona todavía no ha creado su cuenta, debe usar el
+              correo que guardes aquí.
             </p>
 
             <p v-if="jefeFormError" class="edit-error" role="alert">{{ jefeFormError }}</p>
@@ -528,7 +550,7 @@
                 class="btn-action btn-action--primary"
                 :disabled="accionLoading || !jefeForm.id_familia"
               >
-                {{ accionLoading ? 'Guardando…' : 'Registrar Jefe de Familia' }}
+                {{ accionLoading ? 'Guardando…' : (jefeEditando ? 'Guardar cambios' : 'Registrar Jefe de Familia') }}
               </button>
             </div>
           </form>
@@ -569,6 +591,7 @@ const {
   rechazarRegistro,
   actualizarRegistro,
   registrarJefeFamilia,
+  actualizarJefeFamilia,
   darBajaJefeFamilia,
   familiaDeJefe,
   jefeDeFamilia,
@@ -609,6 +632,7 @@ const editForm = reactive({
 })
 
 const jefeModalOpen = ref(false)
+const jefeEditando = ref(null)
 const jefeFormError = ref('')
 const jefeForm = reactive({
   id_familia: null,
@@ -840,6 +864,7 @@ async function guardarEdicion() {
 
 function openRegistrarJefe() {
   if (!familiasSinJefe.value.length) return
+  jefeEditando.value = null
   jefeForm.id_familia = familiasSinJefe.value[0]?.id || null
   jefeForm.nombre = ''
   jefeForm.telefono = ''
@@ -849,9 +874,21 @@ function openRegistrarJefe() {
   jefeModalOpen.value = true
 }
 
+function openEditarJefe(item) {
+  const familia = familiaDeJefe(item)
+  jefeEditando.value = item
+  jefeForm.id_familia = item.id_familia
+  jefeForm.nombre = item.nombre || ''
+  jefeForm.telefono = item.telefono || ''
+  jefeForm.email = familia?.email || ''
+  jefeFormError.value = ''
+  jefeModalOpen.value = true
+}
+
 function closeRegistrarJefe() {
   if (accionLoading.value) return
   jefeModalOpen.value = false
+  jefeEditando.value = null
 }
 
 function prefillJefe() {
@@ -888,14 +925,31 @@ async function guardarJefeFamilia() {
   }
 
   try {
-    await registrarJefeFamilia({ ...jefeForm })
-    jefeModalOpen.value = false
-    mostrarExito(
-      `Jefe de Familia registrado. La persona debe crear su cuenta con la cédula V-${jefeForm.id_familia} y el correo ${jefeForm.email}.`
-    )
-    vista.value = 'jefes'
+    if (jefeEditando.value) {
+      await actualizarJefeFamilia({
+        id_jefe_familia: jefeEditando.value.id_jefe_familia,
+        id_familia: jefeEditando.value.id_familia,
+        nombre: jefeForm.nombre,
+        telefono: jefeForm.telefono,
+        email: jefeForm.email,
+      })
+      jefeModalOpen.value = false
+      jefeEditando.value = null
+      mostrarExito('Jefe de Familia actualizado correctamente.')
+    } else {
+      await registrarJefeFamilia({ ...jefeForm })
+      jefeModalOpen.value = false
+      mostrarExito(
+        `Jefe de Familia registrado. La persona debe crear su cuenta con la cédula V-${jefeForm.id_familia} y el correo ${jefeForm.email}.`
+      )
+      vista.value = 'jefes'
+    }
   } catch (err) {
-    jefeFormError.value = err?.message || 'No se pudo registrar el Jefe de Familia.'
+    jefeFormError.value =
+      err?.message ||
+      (jefeEditando.value
+        ? 'No se pudo actualizar el Jefe de Familia.'
+        : 'No se pudo registrar el Jefe de Familia.')
   }
 }
 </script>
@@ -1553,6 +1607,12 @@ async function guardarJefeFamilia() {
   color: #075985;
   font-size: 0.8rem;
   line-height: 1.5;
+}
+
+.jefe-note--edit {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 /* Modal de edición */

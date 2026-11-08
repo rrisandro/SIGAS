@@ -10,12 +10,6 @@
         <BaseButton variant="outline" :disabled="cargando" @click="cargarHistorico">
           {{ cargando ? 'Actualizando...' : 'Actualizar' }}
         </BaseButton>
-        <BaseButton variant="outline" :disabled="!rowsHistorico.length" @click="download('csv')">
-          Descargar CSV
-        </BaseButton>
-        <BaseButton variant="outline" :disabled="!rowsHistorico.length" @click="download('json')">
-          Descargar JSON
-        </BaseButton>
       </div>
     </div>
 
@@ -309,36 +303,6 @@ async function cargarHistorico() {
   } finally {
     cargando.value = false
   }
-}
-
-function download(format) {
-  const data = rowsHistorico.value.map(({ _original, ...row }) => row)
-  let content
-  let mime
-  let filename
-
-  if (format === 'json') {
-    content = JSON.stringify(data, null, 2)
-    mime = 'application/json'
-    filename = 'auditoria-ciclos.json'
-  } else {
-    const headers = ['nombre', 'calle', 'entregados', 'fecha', 'estado']
-    const lines = [headers.join(',')]
-    data.forEach((row) => {
-      lines.push(headers.map((h) => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(','))
-    })
-    content = lines.join('\n')
-    mime = 'text/csv;charset=utf-8'
-    filename = 'auditoria-ciclos.csv'
-  }
-
-  const blob = new Blob([content], { type: mime })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
 }
 
 function verDetalleCiclo(ciclo) {

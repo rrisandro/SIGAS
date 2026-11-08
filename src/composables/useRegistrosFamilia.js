@@ -543,6 +543,80 @@ export function useRegistrosFamilia() {
     return true
   }
 
+  async function actualizarJefeFamilia(datos) {
+    accionLoading.value = true
+    error.value = ''
+    try {
+      const nombre = limpiarNombre(datos.nombre, 120)
+      const telefono = limpiarDigitos(datos.telefono, 12)
+      const email = limpiarEmail(datos.email, 254)
+
+      const errores = [
+        validarNombre(nombre, { label: 'El nombre del Jefe de Familia', max: 120 }),
+        validarTelefono(telefono, { label: 'El teléfono', required: false, min: 7, max: 12 }),
+        validarEmail(email, { label: 'El correo electrónico' }),
+      ]
+
+      const primerError = errores.find(Boolean)
+      if (primerError) throw new Error(primerError)
+
+      if (!datos.id_jefe_familia) {
+        throw new Error('No se identificó al Jefe de Familia.')
+      }
+
+      const payload = {
+        p_id_jefe_familia: Number(datos.id_jefe_familia),
+        p_nombre: nombre,
+        p_telefono: telefono || null,
+        p_email: email,
+      }
+
+      const { data, error: rpcError } = await supabase.rpc(
+        'actualizar_jefe_familia',
+        payload
+      )
+
+      if (rpcError) {
+        if (!esRpcInexistente(rpcError)) throw rpcError
+        await actualizarJefeFamiliaFallback(payload, datos.id_familia)
+      }
+
+      await Promise.all([cargarRegistros(), cargarJefesFamilia()])
+      return data || true
+    } catch (err) {
+      console.error('[SIGAS] Error actualizando Jefe de Familia:', err)
+      error.value = mensajeError(err, 'No se pudo actualizar el Jefe de Familia.')
+      throw err
+    } finally {
+      accionLoading.value = false
+    }
+  }
+
+  async function actualizarJefeFamiliaFallback(payload, idFamilia) {
+    const { error: jefeError } = await supabase
+      .from('jefes_familia')
+      .update({
+        nombre: payload.p_nombre,
+        telefono: payload.p_telefono,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id_jefe_familia', payload.p_id_jefe_familia)
+
+    if (jefeError) throw jefeError
+
+    if (idFamilia) {
+      const { error: familiaError } = await supabase
+        .from('familias')
+        .update({
+          email: payload.p_email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', idFamilia)
+
+      if (familiaError) throw familiaError
+    }
+  }
+
   async function darBajaJefeFamilia(idJefeFamilia) {
     accionLoading.value = true
     error.value = ''
@@ -602,6 +676,7 @@ export function useRegistrosFamilia() {
     rechazarRegistro,
     actualizarRegistro,
     registrarJefeFamilia,
+    actualizarJefeFamilia,
     darBajaJefeFamilia,
     familiaDeJefe,
     jefeDeFamilia,
