@@ -61,14 +61,20 @@ export function useRegistrosFamilia() {
     jefesFamilia.value.filter((item) => item.activo && !item.is_deleted)
   )
 
-  // Familias de la calle que todavía no tienen ningún Jefe de Familia
-  // vigente (ni activo ni pendiente de cuenta).
+  // Familias de la calle que pueden recibir un nuevo Jefe de Familia:
+  // sin jefe registrado, o con un jefe inactivo/rechazado que puede
+  // reemplazarse. Un jefe activo o pendiente de cuenta ya ocupa el registro.
   const familiasSinJefe = computed(() =>
     registros.value.filter((familia) => {
       if (familia.is_deleted) return false
-      return !jefesFamilia.value.some(
-        (jefe) => Number(jefe.id_familia) === Number(familia.id) && !jefe.is_deleted
+
+      const jefe = jefesFamilia.value.find(
+        (item) => Number(item.id_familia) === Number(familia.id) && !item.is_deleted
       )
+
+      if (!jefe) return true
+      if (jefe.activo) return false
+      return jefe.estado !== 'pendiente'
     })
   )
 
@@ -140,7 +146,10 @@ export function useRegistrosFamilia() {
       .from('familias')
       .select('*')
       .eq('id_calle', calleId.value)
-      .eq('id_cargo', 3)
+      // Familias censadas antes de que existiera id_cargo quedaron con
+      // id_cargo nulo. Deben seguir apareciendo para poder registrar a su
+      // Jefe de Familia.
+      .or('id_cargo.eq.3,id_cargo.is.null')
       .eq('is_deleted', false)
       .order('id', { ascending: false })
 

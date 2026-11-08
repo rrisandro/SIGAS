@@ -190,12 +190,16 @@
                   >
                     Aprobar Jefe de Familia
                   </button>
-                  <span
-                    v-else-if="jefeDeFamilia(registro)?.estado === 'pendiente'"
-                    class="record-approved-hint"
-                  >
-                    Jefe de Familia pendiente de cuenta
-                  </span>
+                  <template v-else-if="jefeDeFamilia(registro)?.estado === 'pendiente'">
+                    <button
+                      type="button"
+                      class="btn-action btn-action--outline"
+                      @click="openEditarJefe(jefeDeFamilia(registro))"
+                    >
+                      Editar Jefe de Familia
+                    </button>
+                    <span class="record-approved-hint">Pendiente de cuenta</span>
+                  </template>
                   <button
                     v-else-if="registro.auth_id"
                     type="button"
@@ -204,9 +208,14 @@
                   >
                     Asignar Jefe de Familia
                   </button>
-                  <span v-else class="record-approved-hint">
-                    Sin Jefe de Familia registrado
-                  </span>
+                  <button
+                    v-else
+                    type="button"
+                    class="btn-action btn-action--primary"
+                    @click="openRegistrarJefe(registro.id)"
+                  >
+                    Registrar Jefe de Familia
+                  </button>
                 </template>
                 <span v-else class="record-approved-hint">
                   Aprobado como Jefe de Familia
@@ -235,6 +244,11 @@
             + Registrar Jefe de Familia
           </button>
         </div>
+
+        <p v-if="!loading && !familiasSinJefe.length" class="jefes-toolbar-hint">
+          No hay familias pendientes de Jefe de Familia en tu calle. Si necesitas actualizar a
+          un jefe existente, usa el botón «Editar» en la lista.
+        </p>
 
         <div v-if="loading" class="state-panel">
           <span class="spinner" aria-hidden="true" />
@@ -862,10 +876,15 @@ async function guardarEdicion() {
   }
 }
 
-function openRegistrarJefe() {
-  if (!familiasSinJefe.value.length) return
+function openRegistrarJefe(idFamilia = null) {
+  const familia = idFamilia
+    ? familiasSinJefe.value.find((item) => Number(item.id) === Number(idFamilia))
+    : familiasSinJefe.value[0]
+
+  if (!familia) return
+
   jefeEditando.value = null
-  jefeForm.id_familia = familiasSinJefe.value[0]?.id || null
+  jefeForm.id_familia = familia.id
   jefeForm.nombre = ''
   jefeForm.telefono = ''
   jefeForm.email = ''
@@ -894,8 +913,10 @@ function closeRegistrarJefe() {
 function prefillJefe() {
   const familia = familiaJefeSeleccionada.value
   if (!familia) return
-  jefeForm.nombre = familia.nombre_familia || ''
-  jefeForm.telefono = familia.telefono || ''
+
+  const jefe = jefeDeFamilia(familia)
+  jefeForm.nombre = jefe?.nombre || familia.nombre_familia || ''
+  jefeForm.telefono = jefe?.telefono || familia.telefono || ''
   jefeForm.email = familia.email || ''
 }
 
@@ -1596,6 +1617,17 @@ async function guardarJefeFamilia() {
 
 .jefes-toolbar .btn-action {
   align-self: flex-start;
+}
+
+.jefes-toolbar-hint {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 .jefe-note {
