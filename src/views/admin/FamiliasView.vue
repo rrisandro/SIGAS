@@ -64,6 +64,7 @@
               <th>Cédula (ID)</th>
               <th>Código</th>
               <th>Nombre de la Familia</th>
+              <th>Jefe de Familia</th>
               <th>Calle / Sector</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -78,6 +79,15 @@
               <td class="name-cell" data-label="Nombre de la familia">
                 <div class="avatar">{{ familia.nombre_familia ? familia.nombre_familia.charAt(0).toUpperCase() : 'F' }}</div>
                 <span class="family-name">{{ familia.nombre_familia || 'Sin nombre' }}</span>
+              </td>
+              <td data-label="Jefe de Familia">
+                <template v-if="jefeDeFamilia(familia)">
+                  <span class="jefe-name">{{ jefeDeFamilia(familia).nombre || 'Sin nombre' }}</span>
+                  <span v-if="!jefeDeFamilia(familia).activo" class="jefe-status">
+                    Pendiente de cuenta
+                  </span>
+                </template>
+                <span v-else class="jefe-empty">Sin jefe registrado</span>
               </td>
               <td data-label="Calle / Sector">
                 <span class="badge-calle">{{ obtenerNombreCalle(familia.id_calle) }}</span>
@@ -189,6 +199,7 @@ import {
 
 const familias = ref([])
 const calles = ref([])
+const jefesFamilia = ref([])
 const filtroBusqueda = ref('')
 const loading = ref(true)
 const guardando = ref(false)
@@ -210,6 +221,32 @@ const form = ref({
   activo: true
 })
 
+const jefesPorFamilia = computed(() => {
+  const mapa = new Map()
+  for (const jefe of jefesFamilia.value) {
+    const actual = mapa.get(jefe.id_familia)
+    if (!actual) {
+      mapa.set(jefe.id_familia, jefe)
+      continue
+    }
+    if (jefe.activo && !actual.activo) {
+      mapa.set(jefe.id_familia, jefe)
+      continue
+    }
+    if (
+      Boolean(jefe.activo) === Boolean(actual.activo) &&
+      new Date(jefe.created_at || 0) > new Date(actual.created_at || 0)
+    ) {
+      mapa.set(jefe.id_familia, jefe)
+    }
+  }
+  return mapa
+})
+
+function jefeDeFamilia(familia) {
+  return jefesPorFamilia.value.get(familia.id) || null
+}
+
 async function cargarFamilias() {
   loading.value = true
   errorGeneral.value = ''
@@ -228,6 +265,17 @@ async function cargarFamilias() {
       .order('id', { ascending: true })
     if (!error && data) {
       familias.value = data
+    }
+
+    const { data: jefesData, error: jefesError } = await supabase
+      .from('jefes_familia')
+      .select('*')
+      .eq('is_deleted', false)
+
+    if (!jefesError && jefesData) {
+      jefesFamilia.value = jefesData
+    } else if (jefesError) {
+      console.warn('[SIGAS] No se pudieron cargar los Jefes de Familia:', jefesError)
     }
   } catch (e) {
     console.error('Error cargando familias:', e)
@@ -734,6 +782,28 @@ const familiasFiltradas = computed(() => {
   border-radius: 6px; 
   font-size: 0.8rem; 
   font-weight: 500; 
+}
+
+.jefe-name {
+  display: block;
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.jefe-status {
+  display: block;
+  margin-top: 2px;
+  color: #b45309;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.jefe-empty {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 .status-indicator {

@@ -455,6 +455,18 @@ function mensajeDeError(err, fallback) {
   if (/registro de familia asociado/i.test(mensaje)) {
     return 'Esta cuenta ya tiene un registro de familia. Inicia sesión o contacta al Jefe de Calle.'
   }
+  if (/ya tiene una cuenta de acceso/i.test(mensaje)) {
+    return 'Esta cédula ya tiene una cuenta de acceso. Inicia sesión o usa «Olvidé mi contraseña».'
+  }
+  if (/El correo no coincide/i.test(mensaje)) {
+    return mensaje
+  }
+  if (/ya está registrada en otra calle/i.test(mensaje)) {
+    return 'Esta cédula ya está registrada en otra calle. Selecciona la calle que registró tu Jefe de Calle.'
+  }
+  if (/fue dada de baja/i.test(mensaje)) {
+    return mensaje
+  }
   if (/duplicate key|ya existe|cedula|cédula/i.test(mensaje)) {
     return 'Ya existe un registro con esa cédula. Si es tuyo, contacta al Jefe de Calle.'
   }
@@ -533,6 +545,19 @@ async function handleLogin() {
     }
 
     if (!perfilFinal) {
+      // Si la cuenta ya existía antes de que el Jefe de Calle censara a la
+      // familia, se vincula usando el correo verificado de la sesión.
+      const { data: vinculacion, error: vinculacionError } = await supabase.rpc(
+        'vincular_cuenta_familia'
+      )
+
+      if (!vinculacionError && vinculacion?.vinculado) {
+        await supabase.auth.signOut().catch(() => {})
+        throw new Error(
+          'Tu cuenta quedó vinculada a la familia ya censada y está PENDIENTE de aprobación por el Jefe de Calle de tu zona.'
+        )
+      }
+
       throw new Error('Tu cuenta no tiene un perfil asociado. Contacta al administrador.')
     }
 
@@ -744,6 +769,49 @@ async function handleRegister() {
   registerLoading.value = true
 
   try {
+    // 0. Verificar la cédula antes de crear la cuenta de Authentication.
+    //    Así evitamos cuentas huérfanas cuando la familia ya está censada.
+    const { data: disponibilidad, error: disponibilidadError } = await supabase.rpc(
+      'verificar_cedula_registro',
+      { p_id: Number(cedula) }
+    )
+
+    const noExisteVerificacion =
+      disponibilidadError?.code === 'PGRST202' ||
+      /could not find the function|function .* does not exist/i.test(
+        disponibilidadError?.message || ''
+      )
+
+    if (disponibilidadError && !noExisteVerificacion) {
+      throw new Error(
+        'No se pudo verificar la cédula. Revisa tu conexión e intenta nuevamente.'
+      )
+    }
+
+    if (!disponibilidadError && disponibilidad) {
+      if (disponibilidad.tiene_cuenta) {
+        throw new Error(
+          'Esta cédula ya tiene una cuenta de acceso. Inicia sesión o usa «Olvidé mi contraseña».'
+        )
+      }
+
+      if (disponibilidad.bloqueada) {
+        throw new Error(
+          'Esta cédula fue dada de baja. Contacta al Jefe de Calle o al administrador.'
+        )
+      }
+
+      if (disponibilidad.existe && !disponibilidad.disponible) {
+        throw new Error('Esta cédula ya está registrada. Contacta al Jefe de Calle.')
+      }
+
+      // Si la familia ya fue censada, usar la calle que registró el Jefe de
+      // Calle para que el registro no falle por una calle distinta.
+      if (disponibilidad.existe && disponibilidad.id_calle) {
+        regCalle.value = disponibilidad.id_calle
+      }
+    }
+
     // 1. Crear usuario en Authentication de Supabase
     const { data: authData, error: authErr } = await supabase.auth.signUp({
       email,
@@ -805,10 +873,19 @@ async function handleRegister() {
     }
 
     const notificado = resultado?.notificado !== false
+    const vinculado = Boolean(resultado?.vinculado)
     const codigo = String(resultado?.codigo || '').trim().toUpperCase()
-    const mensajeBase = notificado
-      ? 'Quedó en estado PENDIENTE y el Jefe de Calle de tu zona recibió una notificación.'
-      : 'Quedó en estado PENDIENTE. Aún no hay un Jefe de Calle asignado a tu zona; el administrador lo revisará.'
+
+    let mensajeBase = ''
+    if (vinculado) {
+      mensajeBase = notificado
+        ? 'Tu cuenta quedó vinculada a la familia ya censada y está PENDIENTE de aprobación por el Jefe de Calle de tu zona.'
+        : 'Tu cuenta quedó vinculada a la familia ya censada y está PENDIENTE. Aún no hay un Jefe de Calle asignado a tu zona; el administrador lo revisará.'
+    } else {
+      mensajeBase = notificado
+        ? 'Quedó en estado PENDIENTE y el Jefe de Calle de tu zona recibió una notificación.'
+        : 'Quedó en estado PENDIENTE. Aún no hay un Jefe de Calle asignado a tu zona; el administrador lo revisará.'
+    }
 
     registerNotice.value = codigo
       ? `Registro enviado. Tu código de familia es ${codigo}. Guárdalo para identificar tu registro. ${mensajeBase}`

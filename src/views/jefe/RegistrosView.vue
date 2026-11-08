@@ -181,14 +181,33 @@
                 </button>
               </template>
               <template v-else>
-                <button
-                  v-if="!tieneJefeActivo(registro)"
-                  type="button"
-                  class="btn-action btn-action--success"
-                  @click="openAprobar(registro)"
-                >
-                  Asignar Jefe de Familia
-                </button>
+                <template v-if="!tieneJefeActivo(registro)">
+                  <button
+                    v-if="jefeDeFamilia(registro)?.estado === 'pendiente' && jefeDeFamilia(registro)?.auth_id"
+                    type="button"
+                    class="btn-action btn-action--success"
+                    @click="openAprobar(registro)"
+                  >
+                    Aprobar Jefe de Familia
+                  </button>
+                  <span
+                    v-else-if="jefeDeFamilia(registro)?.estado === 'pendiente'"
+                    class="record-approved-hint"
+                  >
+                    Jefe de Familia pendiente de cuenta
+                  </span>
+                  <button
+                    v-else-if="registro.auth_id"
+                    type="button"
+                    class="btn-action btn-action--success"
+                    @click="openAprobar(registro)"
+                  >
+                    Asignar Jefe de Familia
+                  </button>
+                  <span v-else class="record-approved-hint">
+                    Sin Jefe de Familia registrado
+                  </span>
+                </template>
                 <span v-else class="record-approved-hint">
                   Aprobado como Jefe de Familia
                 </span>
@@ -199,6 +218,24 @@
       </template>
 
       <template v-else>
+        <div class="jefes-toolbar">
+          <div>
+            <h2>Jefes de Familia registrados</h2>
+            <p>
+              Registra al representante de una familia censada. La persona deberá crear su
+              cuenta desde el inicio de sesión con su cédula y el correo indicado.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-action btn-action--primary"
+            :disabled="!familiasSinJefe.length || accionLoading"
+            @click="openRegistrarJefe"
+          >
+            + Registrar Jefe de Familia
+          </button>
+        </div>
+
         <div v-if="loading" class="state-panel">
           <span class="spinner" aria-hidden="true" />
           <p>Cargando Jefes de Familia…</p>
@@ -207,7 +244,11 @@
         <div v-else-if="jefesFamilia.length === 0" class="state-panel state-panel--empty">
           <span class="empty-icon" aria-hidden="true">👥</span>
           <strong>Aún no hay Jefes de Familia</strong>
-          <p>Los jefes de familia se crean al aprobar el registro de una familia.</p>
+          <p>
+            Puedes registrar al Jefe de Familia de una familia censada con el botón
+            «Registrar Jefe de Familia», o aprobar el registro que haga la persona desde el inicio
+            de sesión.
+          </p>
         </div>
 
         <div v-else class="records-list">
@@ -227,8 +268,11 @@
                   · {{ nombreCalle(item.id_calle) }}
                 </p>
               </div>
-              <span class="status-pill" :class="item.activo ? 'is-approved' : 'is-rejected'">
-                {{ item.activo ? 'Activo' : 'Inactivo' }}
+              <span
+                class="status-pill"
+                :class="item.activo ? 'is-approved' : (item.estado === 'pendiente' ? 'is-pending' : 'is-rejected')"
+              >
+                {{ item.activo ? 'Activo' : (item.estado === 'pendiente' ? 'Pendiente de cuenta' : 'Inactivo') }}
               </span>
             </div>
 
@@ -242,25 +286,30 @@
                 <strong>{{ item.telefono || 'No indicado' }}</strong>
               </div>
               <div>
+                <span>Cuenta de acceso</span>
+                <strong>{{ item.auth_id ? 'Vinculada' : 'Sin cuenta todavía' }}</strong>
+              </div>
+              <div>
                 <span>Alta</span>
                 <strong>{{ formatearFecha(item.created_at) }}</strong>
               </div>
-              <div>
-                <span>ID</span>
-                <strong>#{{ item.id_jefe_familia }}</strong>
-              </div>
             </div>
+
+            <p v-if="!item.activo && item.estado === 'pendiente'" class="record-note record-note--info">
+              <strong>Falta la cuenta de acceso:</strong>
+              la persona debe registrarse en el inicio de sesión con la cédula
+              V-{{ item.ci || item.id_familia }} y el correo registrado. Luego apruébala en
+              «Registros».
+            </p>
 
             <div class="record-actions">
               <button
-                v-if="item.activo"
                 type="button"
                 class="btn-action btn-action--danger"
                 @click="openBaja(item)"
               >
-                Dar de baja
+                {{ item.activo ? 'Dar de baja' : 'Cancelar registro' }}
               </button>
-              <span v-else class="record-approved-hint">Sin asignación activa</span>
             </div>
           </article>
         </div>
@@ -378,6 +427,114 @@
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="jefeModalOpen" class="edit-modal" @click.self="closeRegistrarJefe">
+        <div class="edit-panel" role="dialog" aria-modal="true" aria-labelledby="jefe-title">
+          <span class="edit-handle" aria-hidden="true" />
+          <div class="edit-head">
+            <div>
+              <p class="edit-eyebrow">Jefe de Familia</p>
+              <h2 id="jefe-title">Registrar representante</h2>
+            </div>
+            <button type="button" class="edit-close" aria-label="Cerrar" @click="closeRegistrarJefe">
+              ×
+            </button>
+          </div>
+
+          <form class="edit-form" @submit.prevent="guardarJefeFamilia">
+            <div class="form-field">
+              <label for="jefe-familia">Familia</label>
+              <select
+                id="jefe-familia"
+                v-model="jefeForm.id_familia"
+                required
+                @change="prefillJefe"
+              >
+                <option :value="null" disabled>Selecciona una familia sin Jefe de Familia</option>
+                <option v-for="familia in familiasSinJefe" :key="familia.id" :value="familia.id">
+                  {{ familia.nombre_familia || 'Sin nombre' }} — V-{{ familia.id }}
+                </option>
+              </select>
+              <small v-if="!familiasSinJefe.length">
+                Todas las familias de tu calle ya tienen un Jefe de Familia registrado.
+              </small>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="jefe-nombre">Nombre del Jefe de Familia</label>
+                <input
+                  id="jefe-nombre"
+                  v-model="jefeForm.nombre"
+                  v-restrict="{ tipo: 'nombre', max: 120 }"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Ej: María Pérez"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="jefe-cedula">Cédula</label>
+                <input id="jefe-cedula" :value="cedulaJefeSeleccionada" type="text" disabled />
+                <small>La cédula identifica a la familia en SIGAS.</small>
+              </div>
+              <div class="form-field">
+                <label for="jefe-telefono">Teléfono</label>
+                <input
+                  id="jefe-telefono"
+                  v-model="jefeForm.telefono"
+                  v-restrict="{ tipo: 'digits', max: 12 }"
+                  type="tel"
+                  inputmode="numeric"
+                  maxlength="12"
+                  placeholder="04141234567"
+                />
+              </div>
+              <div class="form-field">
+                <label for="jefe-email">Correo electrónico</label>
+                <input
+                  id="jefe-email"
+                  v-model="jefeForm.email"
+                  v-restrict="{ tipo: 'email', max: 254 }"
+                  type="email"
+                  maxlength="254"
+                  placeholder="correo@ejemplo.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <p class="jefe-note">
+              <strong>Importante:</strong> al guardar, el Jefe de Familia queda
+              <strong>pendiente de cuenta</strong>. La persona debe entrar a «Registrarse» en la
+              pantalla de inicio con la cédula <strong>V-{{ cedulaJefeSeleccionada || '—' }}</strong>
+              y el correo indicado. Después podrás aprobarla en la pestaña «Registros».
+            </p>
+
+            <p v-if="jefeFormError" class="edit-error" role="alert">{{ jefeFormError }}</p>
+
+            <div class="edit-actions">
+              <button
+                type="button"
+                class="btn-action btn-action--outline"
+                :disabled="accionLoading"
+                @click="closeRegistrarJefe"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="btn-action btn-action--primary"
+                :disabled="accionLoading || !jefeForm.id_familia"
+              >
+                {{ accionLoading ? 'Guardando…' : 'Registrar Jefe de Familia' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -386,6 +543,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
 import { useRegistrosFamilia } from '../../composables/useRegistrosFamilia.js'
 import {
+  validarEmail,
   validarEntero,
   validarNombre,
   validarTelefono,
@@ -405,12 +563,15 @@ const {
   aprobados,
   rechazados,
   jefesActivos,
+  familiasSinJefe,
   cargarTodo,
   aprobarRegistro,
   rechazarRegistro,
   actualizarRegistro,
+  registrarJefeFamilia,
   darBajaJefeFamilia,
   familiaDeJefe,
+  jefeDeFamilia,
 } = useRegistrosFamilia()
 
 const vista = ref('registros')
@@ -446,6 +607,23 @@ const editForm = reactive({
   personas: '',
   id_calle: null,
 })
+
+const jefeModalOpen = ref(false)
+const jefeFormError = ref('')
+const jefeForm = reactive({
+  id_familia: null,
+  nombre: '',
+  telefono: '',
+  email: '',
+})
+
+const familiaJefeSeleccionada = computed(
+  () =>
+    registros.value.find(
+      (familia) => Number(familia.id) === Number(jefeForm.id_familia)
+    ) || null
+)
+const cedulaJefeSeleccionada = computed(() => familiaJefeSeleccionada.value?.id || '')
 
 const esReasignacion = computed(
   () => confirmAction.value === 'aprobar' && selected.value?.estado === 'aprobado'
@@ -657,6 +835,67 @@ async function guardarEdicion() {
     mostrarExito('Registro modificado correctamente.')
   } catch (err) {
     editError.value = err?.message || 'No se pudo modificar el registro.'
+  }
+}
+
+function openRegistrarJefe() {
+  if (!familiasSinJefe.value.length) return
+  jefeForm.id_familia = familiasSinJefe.value[0]?.id || null
+  jefeForm.nombre = ''
+  jefeForm.telefono = ''
+  jefeForm.email = ''
+  jefeFormError.value = ''
+  prefillJefe()
+  jefeModalOpen.value = true
+}
+
+function closeRegistrarJefe() {
+  if (accionLoading.value) return
+  jefeModalOpen.value = false
+}
+
+function prefillJefe() {
+  const familia = familiaJefeSeleccionada.value
+  if (!familia) return
+  jefeForm.nombre = familia.nombre_familia || ''
+  jefeForm.telefono = familia.telefono || ''
+  jefeForm.email = familia.email || ''
+}
+
+async function guardarJefeFamilia() {
+  jefeFormError.value = ''
+
+  const errores = [
+    validarNombre(jefeForm.nombre, { label: 'El nombre del Jefe de Familia', max: 120 }),
+    validarTelefono(jefeForm.telefono, {
+      label: 'El teléfono',
+      required: false,
+      min: 7,
+      max: 12,
+    }),
+    validarEmail(jefeForm.email, { label: 'El correo electrónico' }),
+  ]
+
+  const primerError = errores.find(Boolean)
+  if (primerError) {
+    jefeFormError.value = primerError
+    return
+  }
+
+  if (!jefeForm.id_familia) {
+    jefeFormError.value = 'Selecciona la familia a la que pertenece el Jefe de Familia.'
+    return
+  }
+
+  try {
+    await registrarJefeFamilia({ ...jefeForm })
+    jefeModalOpen.value = false
+    mostrarExito(
+      `Jefe de Familia registrado. La persona debe crear su cuenta con la cédula V-${jefeForm.id_familia} y el correo ${jefeForm.email}.`
+    )
+    vista.value = 'jefes'
+  } catch (err) {
+    jefeFormError.value = err?.message || 'No se pudo registrar el Jefe de Familia.'
   }
 }
 </script>
@@ -1151,6 +1390,12 @@ async function guardarEdicion() {
   line-height: 1.45;
 }
 
+.record-note--info {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 .record-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1269,6 +1514,45 @@ async function guardarEdicion() {
   color: #64748b;
   font-size: 0.72rem;
   line-height: 1.4;
+}
+
+.jefes-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.jefes-toolbar h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.jefes-toolbar p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.jefes-toolbar .btn-action {
+  align-self: flex-start;
+}
+
+.jefe-note {
+  margin: 4px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  background: #f0f9ff;
+  color: #075985;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 /* Modal de edición */
@@ -1477,6 +1761,17 @@ async function guardarEdicion() {
     flex: 0 0 auto;
     min-width: 160px;
     padding: 0 18px;
+  }
+
+  .jefes-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .jefes-toolbar .btn-action {
+    align-self: auto;
+    flex-shrink: 0;
   }
 
   .record-card {

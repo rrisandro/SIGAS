@@ -653,6 +653,9 @@ function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   if (/invalid login credentials/i.test(mensaje)) {
     return 'La contraseña del administrador es incorrecta.'
   }
+  if (/uq_familias_auth_activo|duplicate key/i.test(mensaje)) {
+    return 'No se puede completar la acción: otra familia activa ya usa la misma cuenta de acceso o la misma cédula.'
+  }
   return mensaje || fallback
 }
 </script>

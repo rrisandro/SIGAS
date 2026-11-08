@@ -2,8 +2,10 @@ import { computed, ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
 import {
   limpiarDigitos,
+  limpiarEmail,
   limpiarNombre,
   limpiarTexto,
+  validarEmail,
   validarEntero,
   validarNombre,
   validarTelefono,
@@ -13,8 +15,12 @@ import {
 function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   const mensaje = String(err?.message || err?.details || '')
   if (/ya tiene un Jefe de Familia activo/i.test(mensaje)) return mensaje
-  if (/uq_jefes_familia_activo|duplicate key/i.test(mensaje)) {
-    return 'La familia ya tiene un Jefe de Familia activo. Debes darlo de baja antes de asignar otro.'
+  if (/ya tiene una cuenta de acceso/i.test(mensaje)) return mensaje
+  if (/ya está vinculada a otra familia/i.test(mensaje)) return mensaje
+  if (/ya es Jefe de Familia de otra familia/i.test(mensaje)) return mensaje
+  if (/El correo no coincide/i.test(mensaje)) return mensaje
+  if (/uq_jefes_familia_activo|uq_familias_auth_activo|duplicate key/i.test(mensaje)) {
+    return 'La familia o la cuenta ya están vinculadas a otro registro. Revisa los datos e intenta nuevamente.'
   }
   if (/No tienes permiso|42501|row-level security/i.test(mensaje)) {
     return 'No tienes permisos para gestionar este registro.'
@@ -54,6 +60,26 @@ export function useRegistrosFamilia() {
   const jefesActivos = computed(() =>
     jefesFamilia.value.filter((item) => item.activo && !item.is_deleted)
   )
+
+  // Familias de la calle que todavía no tienen ningún Jefe de Familia
+  // vigente (ni activo ni pendiente de cuenta).
+  const familiasSinJefe = computed(() =>
+    registros.value.filter((familia) => {
+      if (familia.is_deleted) return false
+      return !jefesFamilia.value.some(
+        (jefe) => Number(jefe.id_familia) === Number(familia.id) && !jefe.is_deleted
+      )
+    })
+  )
+
+  function jefeDeFamilia(familia) {
+    if (!familia) return null
+    return (
+      jefesFamilia.value.find(
+        (jefe) => Number(jefe.id_familia) === Number(familia.id) && !jefe.is_deleted
+      ) || null
+    )
+  }
 
   async function cargarContexto() {
     const {
@@ -207,25 +233,50 @@ export function useRegistrosFamilia() {
     const registro = registros.value.find((item) => item.id === idFamilia)
     if (!registro) throw new Error('El registro no está disponible.')
 
-    const { data: nuevoJefe, error: insertError } = await supabase
+    const { data: jefeExistente, error: jefeError } = await supabase
       .from('jefes_familia')
-      .insert([
-        {
-          id_familia: registro.id,
-          auth_id: registro.auth_id,
-          id_calle: registro.id_calle,
-          nombre: registro.nombre_familia,
-          ci: String(registro.id),
-          telefono: registro.telefono,
-          activo: true,
-          estado: 'aprobado',
-          is_deleted: false,
-        },
-      ])
-      .select('id_jefe_familia')
-      .single()
+      .select('*')
+      .eq('id_familia', idFamilia)
+      .eq('is_deleted', false)
+      .order('activo', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-    if (insertError) throw insertError
+    if (jefeError) throw jefeError
+    if (jefeExistente?.activo) return jefeExistente
+
+    const datosJefe = {
+      id_familia: registro.id,
+      auth_id: registro.auth_id || jefeExistente?.auth_id || null,
+      id_calle: registro.id_calle,
+      nombre: jefeExistente?.nombre || registro.nombre_familia,
+      ci: jefeExistente?.ci || String(registro.id),
+      telefono: jefeExistente?.telefono || registro.telefono,
+      activo: true,
+      estado: 'aprobado',
+      is_deleted: false,
+    }
+
+    let nuevoJefe = null
+    if (jefeExistente) {
+      const { data, error: updateJefeError } = await supabase
+        .from('jefes_familia')
+        .update(datosJefe)
+        .eq('id_jefe_familia', jefeExistente.id_jefe_familia)
+        .select('id_jefe_familia')
+        .single()
+      if (updateJefeError) throw updateJefeError
+      nuevoJefe = data
+    } else {
+      const { data, error: insertError } = await supabase
+        .from('jefes_familia')
+        .insert([datosJefe])
+        .select('id_jefe_familia')
+        .single()
+      if (insertError) throw insertError
+      nuevoJefe = data
+    }
 
     const { error: updateError } = await supabase
       .from('familias')
@@ -387,6 +438,111 @@ export function useRegistrosFamilia() {
     if (updateError) throw updateError
   }
 
+  async function registrarJefeFamilia(datos) {
+    accionLoading.value = true
+    error.value = ''
+    try {
+      const nombre = limpiarNombre(datos.nombre, 120)
+      const telefono = limpiarDigitos(datos.telefono, 12)
+      const email = limpiarEmail(datos.email, 254)
+
+      const errores = [
+        validarNombre(nombre, { label: 'El nombre del Jefe de Familia', max: 120 }),
+        validarTelefono(telefono, { label: 'El teléfono', required: false, min: 7, max: 12 }),
+        validarEmail(email, { label: 'El correo electrónico' }),
+      ]
+
+      const primerError = errores.find(Boolean)
+      if (primerError) throw new Error(primerError)
+
+      if (!datos.id_familia) {
+        throw new Error('Selecciona la familia a la que pertenece el Jefe de Familia.')
+      }
+
+      const payload = {
+        p_id_familia: Number(datos.id_familia),
+        p_nombre: nombre,
+        p_telefono: telefono || null,
+        p_email: email,
+        p_auth_id: null,
+      }
+
+      const { data, error: rpcError } = await supabase.rpc('registrar_jefe_familia', payload)
+
+      if (rpcError) {
+        if (!esRpcInexistente(rpcError)) throw rpcError
+        await registrarJefeFamiliaFallback(payload)
+      }
+
+      await Promise.all([cargarRegistros(), cargarJefesFamilia()])
+      return data || true
+    } catch (err) {
+      console.error('[SIGAS] Error registrando Jefe de Familia:', err)
+      error.value = mensajeError(err, 'No se pudo registrar el Jefe de Familia.')
+      throw err
+    } finally {
+      accionLoading.value = false
+    }
+  }
+
+  async function registrarJefeFamiliaFallback(payload) {
+    const registro = registros.value.find(
+      (item) => Number(item.id) === Number(payload.p_id_familia)
+    )
+    if (!registro) throw new Error('La familia no está disponible.')
+
+    const { data: jefeExistente, error: jefeError } = await supabase
+      .from('jefes_familia')
+      .select('*')
+      .eq('id_familia', registro.id)
+      .eq('is_deleted', false)
+      .order('activo', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (jefeError) throw jefeError
+    if (jefeExistente?.activo) {
+      throw new Error('La familia ya tiene un Jefe de Familia activo.')
+    }
+
+    const datosJefe = {
+      id_familia: registro.id,
+      auth_id: null,
+      id_calle: registro.id_calle,
+      nombre: payload.p_nombre,
+      ci: String(registro.id),
+      telefono: payload.p_telefono,
+      activo: false,
+      estado: 'pendiente',
+      is_deleted: false,
+    }
+
+    if (jefeExistente) {
+      const { error: updateError } = await supabase
+        .from('jefes_familia')
+        .update(datosJefe)
+        .eq('id_jefe_familia', jefeExistente.id_jefe_familia)
+      if (updateError) throw updateError
+    } else {
+      const { error: insertError } = await supabase
+        .from('jefes_familia')
+        .insert([datosJefe])
+      if (insertError) throw insertError
+    }
+
+    if (payload.p_email) {
+      const { error: emailError } = await supabase
+        .from('familias')
+        .update({ email: payload.p_email, updated_at: new Date().toISOString() })
+        .eq('id', registro.id)
+        .is('auth_id', null)
+      if (emailError) throw emailError
+    }
+
+    return true
+  }
+
   async function darBajaJefeFamilia(idJefeFamilia) {
     accionLoading.value = true
     error.value = ''
@@ -437,6 +593,7 @@ export function useRegistrosFamilia() {
     aprobados,
     rechazados,
     jefesActivos,
+    familiasSinJefe,
     cargarTodo,
     cargarRegistros,
     cargarJefesFamilia,
@@ -444,7 +601,9 @@ export function useRegistrosFamilia() {
     aprobarRegistro,
     rechazarRegistro,
     actualizarRegistro,
+    registrarJefeFamilia,
     darBajaJefeFamilia,
     familiaDeJefe,
+    jefeDeFamilia,
   }
 }
