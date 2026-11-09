@@ -517,7 +517,9 @@ export function useRegistrosFamilia() {
 
     const datosJefe = {
       id_familia: registro.id,
-      auth_id: null,
+      // Si el registro previo ya tenía una cuenta vinculada, no se pierde al
+      // reemplazar los datos de contacto.
+      auth_id: jefeExistente?.auth_id ?? null,
       id_calle: registro.id_calle,
       nombre: payload.p_nombre,
       ci: String(registro.id),
@@ -660,7 +662,12 @@ export function useRegistrosFamilia() {
   }
 
   function familiaDeJefe(item) {
-    return registros.value.find((registro) => registro.id === item.id_familia) || null
+    if (!item) return null
+    return (
+      registros.value.find(
+        (registro) => Number(registro.id) === Number(item.id_familia)
+      ) || null
+    )
   }
 
   return {

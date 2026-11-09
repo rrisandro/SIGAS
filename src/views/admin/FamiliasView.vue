@@ -329,27 +329,29 @@ const jefeForm = ref({
 const jefesPorFamilia = computed(() => {
   const mapa = new Map()
   for (const jefe of jefesFamilia.value) {
-    const actual = mapa.get(jefe.id_familia)
+    const clave = Number(jefe.id_familia)
+    const actual = mapa.get(clave)
     if (!actual) {
-      mapa.set(jefe.id_familia, jefe)
+      mapa.set(clave, jefe)
       continue
     }
     if (jefe.activo && !actual.activo) {
-      mapa.set(jefe.id_familia, jefe)
+      mapa.set(clave, jefe)
       continue
     }
     if (
       Boolean(jefe.activo) === Boolean(actual.activo) &&
       new Date(jefe.created_at || 0) > new Date(actual.created_at || 0)
     ) {
-      mapa.set(jefe.id_familia, jefe)
+      mapa.set(clave, jefe)
     }
   }
   return mapa
 })
 
 function jefeDeFamilia(familia) {
-  return jefesPorFamilia.value.get(familia.id) || null
+  if (!familia) return null
+  return jefesPorFamilia.value.get(Number(familia.id)) || null
 }
 
 function abrirModalJefe(familia) {
@@ -423,7 +425,8 @@ async function registrarJefeFallback(familia, nombre, telefono, email) {
 
   const datosJefe = {
     id_familia: familia.id,
-    auth_id: null,
+    // Conserva la cuenta ya vinculada, si existe, al reemplazar los datos.
+    auth_id: jefeExistente?.auth_id ?? null,
     id_calle: familia.id_calle,
     nombre,
     ci: String(familia.id),
