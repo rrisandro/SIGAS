@@ -109,6 +109,8 @@ async function cargarPadronPorCalle() {
       .from('jefe_de_calle')
       .select('*')
       .eq('auth_id', user.id)
+      .eq('is_deleted', false)
+      .limit(1)
       .maybeSingle()
 
     if (!jefeData) {
@@ -123,14 +125,27 @@ async function cargarPadronPorCalle() {
       .select('id_calle, nombre')
       .eq('id_jefe_calle', jefeData.id_jefe_calle)
 
-    if (!callesAsignadas || callesAsignadas.length === 0) {
+    let callesJefe = callesAsignadas || []
+
+    // Fallback mientras no se haya aplicado la migración multicalle.
+    if (callesJefe.length === 0 && jefeData.id_calle) {
+      const { data: callePrincipal } = await supabase
+        .from('calles')
+        .select('id_calle, nombre')
+        .eq('id_calle', jefeData.id_calle)
+        .maybeSingle()
+
+      if (callePrincipal) callesJefe = [callePrincipal]
+    }
+
+    if (callesJefe.length === 0) {
       sinCalleAsignada.value = true
       cargando.value = false
       return
     }
 
-    const idsCalles = callesAsignadas.map(c => c.id_calle)
-    nombreSector.value = callesAsignadas.map(c => c.nombre).join(', ')
+    const idsCalles = callesJefe.map(c => c.id_calle)
+    nombreSector.value = callesJefe.map(c => c.nombre).join(', ')
 
     // 3. Traer solo las familias pertenecientes a estas calles
     const { data: familiasData } = await supabase

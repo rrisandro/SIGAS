@@ -9,7 +9,7 @@
         <h1>Bandeja de Solicitudes</h1>
         <p>
           Revisa y responde las solicitudes de bombonas de las familias de
-          {{ jefe?.calle?.nombre || 'tu calle' }}. Cada decisión queda registrada.
+          {{ nombreCalles }}. Cada decisión queda registrada.
         </p>
       </div>
       <button type="button" class="btn-refresh" :disabled="loading" @click="cargarTodo">
@@ -170,6 +170,7 @@ const { pedidos, fetchPedidos, updateStatus, error: errorPedidos } = usePedidos(
 
 const jefe = ref(null)
 const calleId = ref(null)
+const callesIds = ref([])
 const loading = ref(true)
 const accionLoading = ref(false)
 const error = ref('')
@@ -184,13 +185,19 @@ const seleccionada = ref(null)
 const motivo = ref('')
 
 const pedidosCalle = computed(() => {
-  if (!calleId.value) return []
+  if (callesIds.value.length === 0) return []
   return pedidos.value.filter((pedido) => {
     const familia = pedido.familia || pedido.familias
     if (!familia) return false
     if (familia.is_deleted) return false
-    return Number(familia.id_calle) === Number(calleId.value)
+    return callesIds.value.includes(Number(familia.id_calle))
   })
+})
+
+const nombreCalles = computed(() => {
+  const calles = jefe.value?.calles || []
+  if (calles.length > 0) return calles.map((calle) => calle.nombre).join(', ')
+  return jefe.value?.calle?.nombre || 'tu calle'
 })
 
 const pendientes = computed(() =>
@@ -283,36 +290,37 @@ async function cargarContexto() {
 
   if (!jefe.value) {
     calleId.value = null
+    callesIds.value = []
     return
   }
 
-  let idCalle = jefe.value.id_calle || null
+  const { data: callesAsignadas } = await supabase
+    .from('calles')
+    .select('id_calle, nombre')
+    .eq('id_jefe_calle', jefe.value.id_jefe_calle)
+    .eq('is_deleted', false)
+    .order('nombre')
 
-  if (!idCalle) {
-    const { data: callesData } = await supabase
+  let callesJefe = callesAsignadas || []
+
+  if (callesJefe.length === 0 && jefe.value.id_calle) {
+    const { data: callePrincipal } = await supabase
       .from('calles')
       .select('id_calle, nombre')
-      .eq('id_jefe_calle', jefe.value.id_jefe_calle)
-      .eq('is_deleted', false)
-      .limit(1)
-
-    idCalle = callesData?.[0]?.id_calle || null
-    if (callesData?.[0]?.nombre) {
-      jefe.value = { ...jefe.value, calle: callesData[0] }
-    }
-  }
-
-  calleId.value = idCalle
-
-  if (idCalle && !jefe.value.calle) {
-    const { data: calleData } = await supabase
-      .from('calles')
-      .select('id_calle, nombre')
-      .eq('id_calle', idCalle)
+      .eq('id_calle', jefe.value.id_calle)
       .maybeSingle()
 
-    if (calleData) jefe.value = { ...jefe.value, calle: calleData }
+    if (callePrincipal) callesJefe = [callePrincipal]
   }
+
+  jefe.value = {
+    ...jefe.value,
+    calles: callesJefe,
+    calle: callesJefe[0] || null,
+  }
+
+  callesIds.value = callesJefe.map((calle) => Number(calle.id_calle))
+  calleId.value = callesIds.value[0] || null
 }
 
 function abrirConfirmacion(solicitud, accion) {
@@ -375,8 +383,9 @@ function mostrarExito(mensaje) {
 
 function nombreCalle(idCalle) {
   if (!idCalle) return 'Sin calle'
-  if (jefe.value?.calle?.id_calle === idCalle) return jefe.value.calle.nombre
-  return `Calle ID ${idCalle}`
+  const calles = jefe.value?.calles || (jefe.value?.calle ? [jefe.value.calle] : [])
+  const calle = calles.find((item) => Number(item.id_calle) === Number(idCalle))
+  return calle?.nombre || `Calle ID ${idCalle}`
 }
 
 function inicial(nombre) {

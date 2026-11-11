@@ -124,6 +124,8 @@ async function cargarDatosDashboardJefe() {
         .from('jefe_de_calle')
         .select('*')
         .eq('auth_id', user.id)
+        .eq('is_deleted', false)
+        .limit(1)
         .maybeSingle()
 
       jefe.value = jefeData
@@ -140,17 +142,30 @@ async function cargarDatosDashboardJefe() {
         .select('id_calle, nombre')
         .eq('id_jefe_calle', jefeData.id_jefe_calle)
 
-      if (!callesAsignadas || callesAsignadas.length === 0) {
+      let callesJefe = callesAsignadas || []
+
+      // Fallback mientras no se haya aplicado la migración multicalle.
+      if (callesJefe.length === 0 && jefeData.id_calle) {
+        const { data: callePrincipal } = await supabase
+          .from('calles')
+          .select('id_calle, nombre')
+          .eq('id_calle', jefeData.id_calle)
+          .maybeSingle()
+
+        if (callePrincipal) callesJefe = [callePrincipal]
+      }
+
+      if (callesJefe.length === 0) {
         sinCalleAsignada.value = true
         cargando.value = false
         return
       }
 
       // Guardamos la lista de IDs de calles
-      const idsCalles = callesAsignadas.map(c => c.id_calle)
+      const idsCalles = callesJefe.map(c => c.id_calle)
 
       // Formateamos el nombre para el título (Ej: "Calle Bolívar, Calle Principal")
-      nombreCalle.value = callesAsignadas.map(c => c.nombre).join(', ')
+      nombreCalle.value = callesJefe.map(c => c.nombre).join(', ')
 
       // 4. Traer todas las familias pertenecientes a cualquiera de sus calles asignadas
       const { data: familiasData } = await supabase

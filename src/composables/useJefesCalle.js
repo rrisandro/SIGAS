@@ -2,9 +2,11 @@ import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import {
   limpiarDigitos,
+  limpiarEmail,
   limpiarNombre,
   limpiarUuid,
   validarCedula,
+  validarEmail,
   validarNombre,
   validarTelefono,
   validarUuid,
@@ -15,6 +17,9 @@ function mensajeError(err, fallback = 'No se pudo completar la acción.') {
   if (/duplicate key/i.test(mensaje)) {
     return 'Ya existe un registro con esos datos.'
   }
+  if (/ya está asignada/i.test(mensaje)) {
+    return mensaje
+  }
   if (/No tienes permiso|42501|row-level security/i.test(mensaje)) {
     return 'No tienes permisos para gestionar los Jefes de Calle.'
   }
@@ -22,6 +27,18 @@ function mensajeError(err, fallback = 'No se pudo completar la acción.') {
     return 'El ID de acceso debe ser un UUID válido.'
   }
   return mensaje || fallback
+}
+
+function esRpcInexistente(error) {
+  return (
+    error?.code === 'PGRST202' ||
+    /could not find the function|function .* does not exist/i.test(error?.message || '')
+  )
+}
+
+function normalizarIds(ids) {
+  if (!Array.isArray(ids)) return []
+  return [...new Set(ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))]
 }
 
 export function useJefesCalle() {
@@ -70,6 +87,36 @@ export function useJefesCalle() {
     } finally {
       loading.value = false
     }
+  }
+
+  // Devuelve las calles actualmente vinculadas a un Jefe de Calle.
+  function callesDeJefe(jefe) {
+    if (!jefe) return []
+    const idJefe = Number(jefe.id_jefe_calle)
+
+    const asignadas = calles.value.filter(
+      (calle) => Number(calle.id_jefe_calle) === idJefe
+    )
+
+    if (asignadas.length > 0) return asignadas
+
+    // Compatibilidad mientras no se haya aplicado la migración multicalle:
+    // la relación puede existir solo en jefe_de_calle.id_calle. Se usa únicamente
+    // si esa calle no fue tomada por otro Jefe de Calle.
+    if (jefe.id_calle) {
+      const principal = calles.value.find(
+        (calle) => Number(calle.id_calle) === Number(jefe.id_calle)
+      )
+
+      if (
+        principal &&
+        (!principal.id_jefe_calle || Number(principal.id_jefe_calle) === idJefe)
+      ) {
+        return [principal]
+      }
+    }
+
+    return []
   }
 
   async function sincronizarCalle(idJefe, idCalle, calleAnterior = null) {
@@ -121,16 +168,62 @@ export function useJefesCalle() {
     if (assignError) throw assignError
   }
 
+  async function sincronizarCallesFallback(idJefe, idsCalles) {
+    const ids = normalizarIds(idsCalles)
+
+    const { data: actuales, error: actualesError } = await supabase
+      .from('calles')
+      .select('id_calle')
+      .eq('id_jefe_calle', idJefe)
+
+    if (actualesError) throw actualesError
+
+    const anteriores = (actuales || []).map((calle) => Number(calle.id_calle))
+
+    for (const idCalle of anteriores) {
+      if (!ids.includes(idCalle)) {
+        const { error: clearError } = await supabase
+          .from('calles')
+          .update({ id_jefe_calle: null })
+          .eq('id_calle', idCalle)
+          .eq('id_jefe_calle', idJefe)
+
+        if (clearError) throw clearError
+      }
+    }
+
+    for (const idCalle of ids) {
+      await sincronizarCalle(idJefe, idCalle)
+    }
+  }
+
+  async function sincronizarCalles(idJefe, idsCalles) {
+    const ids = normalizarIds(idsCalles)
+
+    const { error: rpcError } = await supabase.rpc('asignar_calles_jefe_calle', {
+      p_id_jefe_calle: Number(idJefe),
+      p_ids_calles: ids,
+    })
+
+    if (rpcError) {
+      if (!esRpcInexistente(rpcError)) throw rpcError
+      await sincronizarCallesFallback(idJefe, ids)
+    }
+  }
+
   async function crearJefe(jefe) {
     accionLoading.value = true
     error.value = null
 
     try {
+      const idCalles = normalizarIds(jefe.id_calles)
+      const email = limpiarEmail(jefe.email, 254) || null
       const payload = {
         nombre: limpiarNombre(jefe.nombre, 120),
         ci: limpiarDigitos(jefe.ci, 10) || null,
         telefono: limpiarDigitos(jefe.telefono, 12) || null,
-        id_calle: jefe.id_calle ? Number(jefe.id_calle) : null,
+        email,
+        id_calle: idCalles[0] || (jefe.id_calle ? Number(jefe.id_calle) : null),
         auth_id: limpiarUuid(jefe.auth_id, 36) || null,
         activo: jefe.activo ?? true,
         estado: 'aprobado',
@@ -159,6 +252,11 @@ export function useJefesCalle() {
       })
       if (telefonoError) throw new Error(telefonoError)
 
+      const emailError = email
+        ? validarEmail(email, { label: 'El correo electrónico' })
+        : ''
+      if (emailError) throw new Error(emailError)
+
       const uuidError = validarUuid(payload.auth_id, { required: false })
       if (uuidError) throw new Error(uuidError)
 
@@ -171,7 +269,7 @@ export function useJefesCalle() {
       if (insertError) throw insertError
 
       try {
-        await sincronizarCalle(data.id_jefe_calle, payload.id_calle)
+        await sincronizarCalles(data.id_jefe_calle, idCalles)
       } catch (syncError) {
         // Si no se pudo asignar la calle, no dejamos un Jefe de Calle huérfano.
         const { error: cleanupError } = await supabase
@@ -207,11 +305,15 @@ export function useJefesCalle() {
 
     try {
       const anterior = jefes.value.find((item) => item.id_jefe_calle === id)
+      const callesAnteriores = callesDeJefe(anterior).map((calle) => calle.id_calle)
+      const idCalles = normalizarIds(jefe.id_calles)
+      const email = limpiarEmail(jefe.email, 254) || null
       const payload = {
         nombre: limpiarNombre(jefe.nombre, 120),
         ci: limpiarDigitos(jefe.ci, 10) || null,
         telefono: limpiarDigitos(jefe.telefono, 12) || null,
-        id_calle: jefe.id_calle ? Number(jefe.id_calle) : null,
+        email,
+        id_calle: idCalles[0] || null,
         auth_id: limpiarUuid(jefe.auth_id, 36) || null,
         activo: jefe.activo ?? anterior?.activo ?? true,
       }
@@ -238,6 +340,11 @@ export function useJefesCalle() {
       })
       if (telefonoError) throw new Error(telefonoError)
 
+      const emailError = email
+        ? validarEmail(email, { label: 'El correo electrónico' })
+        : ''
+      if (emailError) throw new Error(emailError)
+
       const uuidError = validarUuid(payload.auth_id, { required: false })
       if (uuidError) throw new Error(uuidError)
 
@@ -251,29 +358,99 @@ export function useJefesCalle() {
       if (updateError) throw updateError
 
       try {
-        await sincronizarCalle(id, payload.id_calle, anterior?.id_calle)
+        await sincronizarCalles(id, idCalles)
       } catch (syncError) {
-        // Revertimos la calle del registro para no dejarlo apuntando a una
-        // asignación que no llegó a completarse.
+        // Revertimos la calle principal del registro para no dejarlo apuntando
+        // a una asignación que no llegó a completarse.
         await supabase
           .from('jefe_de_calle')
-          .update({ id_calle: anterior?.id_calle ?? null })
+          .update({ id_calle: callesAnteriores[0] ?? null })
           .eq('id_jefe_calle', id)
 
-        await sincronizarCalle(id, anterior?.id_calle ?? null, payload.id_calle).catch(
-          (restoreError) => {
-            console.error('[SIGAS] No se pudo restaurar la calle anterior:', restoreError)
-          }
-        )
+        await sincronizarCalles(id, callesAnteriores).catch((restoreError) => {
+          console.error('[SIGAS] No se pudo restaurar la asignación anterior:', restoreError)
+        })
 
         throw syncError
       }
 
-      await fetchJefes()
+      await Promise.all([fetchJefes(), fetchCalles()])
       return data
     } catch (err) {
       console.error('[SIGAS] Error actualizando Jefe de Calle:', err)
       error.value = mensajeError(err, 'No se pudo actualizar el Jefe de Calle.')
+      return null
+    } finally {
+      accionLoading.value = false
+    }
+  }
+
+  async function aprobarJefe(id, idsCalles) {
+    accionLoading.value = true
+    error.value = null
+
+    try {
+      const ids = normalizarIds(idsCalles)
+      const { data, error: rpcError } = await supabase.rpc('aprobar_jefe_calle', {
+        p_id_jefe_calle: Number(id),
+        p_ids_calles: ids,
+      })
+
+      if (rpcError) {
+        if (!esRpcInexistente(rpcError)) throw rpcError
+
+        // Compatibilidad si aún no se aplicó la migración.
+        await sincronizarCalles(id, ids)
+        const { error: updateError } = await supabase
+          .from('jefe_de_calle')
+          .update({ estado: 'aprobado', activo: true, deleted_at: null })
+          .eq('id_jefe_calle', id)
+
+        if (updateError) throw updateError
+      }
+
+      await Promise.all([fetchJefes(), fetchCalles()])
+      return data || true
+    } catch (err) {
+      console.error('[SIGAS] Error aprobando Jefe de Calle:', err)
+      error.value = mensajeError(err, 'No se pudo aprobar el Jefe de Calle.')
+      return null
+    } finally {
+      accionLoading.value = false
+    }
+  }
+
+  async function rechazarJefe(id, motivo) {
+    accionLoading.value = true
+    error.value = null
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('rechazar_jefe_calle', {
+        p_id_jefe_calle: Number(id),
+        p_motivo: String(motivo || '').trim() || null,
+      })
+
+      if (rpcError) {
+        if (!esRpcInexistente(rpcError)) throw rpcError
+
+        await supabase
+          .from('calles')
+          .update({ id_jefe_calle: null })
+          .eq('id_jefe_calle', id)
+
+        const { error: updateError } = await supabase
+          .from('jefe_de_calle')
+          .update({ estado: 'rechazado', activo: false, id_calle: null })
+          .eq('id_jefe_calle', id)
+
+        if (updateError) throw updateError
+      }
+
+      await Promise.all([fetchJefes(), fetchCalles()])
+      return data || true
+    } catch (err) {
+      console.error('[SIGAS] Error rechazando Jefe de Calle:', err)
+      error.value = mensajeError(err, 'No se pudo rechazar el Jefe de Calle.')
       return null
     } finally {
       accionLoading.value = false
@@ -286,6 +463,7 @@ export function useJefesCalle() {
 
     try {
       const jefe = jefes.value.find((item) => item.id_jefe_calle === id)
+      const callesAsignadas = callesDeJefe(jefe).map((calle) => calle.id_calle)
 
       const { error: updateError } = await supabase
         .from('jefe_de_calle')
@@ -295,18 +473,11 @@ export function useJefesCalle() {
       if (updateError) throw updateError
 
       try {
-        if (!activo && jefe?.id_calle) {
-          const { error: clearError } = await supabase
-            .from('calles')
-            .update({ id_jefe_calle: null })
-            .eq('id_calle', jefe.id_calle)
-            .eq('id_jefe_calle', id)
-
-          if (clearError) throw clearError
-        }
-
-        if (activo && jefe?.id_calle) {
-          await sincronizarCalle(id, jefe.id_calle)
+        // Al reactivar se revalida que ninguna de sus calles haya sido tomada
+        // por otro Jefe de Calle activo. Al desactivar se conserva la relación;
+        // las políticas ya impiden gestionar con activo = false.
+        if (activo && callesAsignadas.length > 0) {
+          await sincronizarCalles(id, callesAsignadas)
         }
       } catch (syncError) {
         await supabase
@@ -317,7 +488,7 @@ export function useJefesCalle() {
         throw syncError
       }
 
-      await fetchJefes()
+      await Promise.all([fetchJefes(), fetchCalles()])
       return true
     } catch (err) {
       console.error('[SIGAS] Error cambiando estado del Jefe de Calle:', err)
@@ -334,12 +505,12 @@ export function useJefesCalle() {
 
     try {
       const jefe = jefes.value.find((item) => item.id_jefe_calle === id)
+      const callesAsignadas = callesDeJefe(jefe).map((calle) => calle.id_calle)
 
-      if (jefe?.id_calle) {
+      if (callesAsignadas.length > 0) {
         const { error: clearError } = await supabase
           .from('calles')
           .update({ id_jefe_calle: null })
-          .eq('id_calle', jefe.id_calle)
           .eq('id_jefe_calle', id)
 
         if (clearError) throw clearError
@@ -355,17 +526,14 @@ export function useJefesCalle() {
         .eq('id_jefe_calle', id)
 
       if (updateError) {
-        if (jefe?.id_calle) {
-          await supabase
-            .from('calles')
-            .update({ id_jefe_calle: id })
-            .eq('id_calle', jefe.id_calle)
+        if (callesAsignadas.length > 0) {
+          await sincronizarCalles(id, callesAsignadas).catch(() => {})
         }
 
         throw updateError
       }
 
-      await fetchJefes()
+      await Promise.all([fetchJefes(), fetchCalles()])
       return true
     } catch (err) {
       console.error('[SIGAS] Error dando de baja al Jefe de Calle:', err)
@@ -382,11 +550,10 @@ export function useJefesCalle() {
 
     try {
       const jefe = jefes.value.find((item) => item.id_jefe_calle === id)
+      const callePrincipal = jefe?.id_calle ? [Number(jefe.id_calle)] : []
 
-      if (jefe?.id_calle) {
-        await sincronizarCalle(id, jefe.id_calle)
-      }
-
+      // Primero se restaura la ficha: la RPC de calles exige que el Jefe de
+      // Calle no esté dado de baja.
       const { error: updateError } = await supabase
         .from('jefe_de_calle')
         .update({
@@ -396,19 +563,27 @@ export function useJefesCalle() {
         })
         .eq('id_jefe_calle', id)
 
-      if (updateError) {
-        if (jefe?.id_calle) {
-          await supabase
-            .from('calles')
-            .update({ id_jefe_calle: null })
-            .eq('id_calle', jefe.id_calle)
-            .eq('id_jefe_calle', id)
-        }
+      if (updateError) throw updateError
 
-        throw updateError
+      if (callePrincipal.length > 0) {
+        try {
+          await sincronizarCalles(id, callePrincipal)
+        } catch (syncError) {
+          // Si la calle ya fue tomada por otro, se revierte la restauración.
+          await supabase
+            .from('jefe_de_calle')
+            .update({
+              activo: false,
+              is_deleted: true,
+              deleted_at: new Date().toISOString(),
+            })
+            .eq('id_jefe_calle', id)
+
+          throw syncError
+        }
       }
 
-      await fetchJefes()
+      await Promise.all([fetchJefes(), fetchCalles()])
       return true
     } catch (err) {
       console.error('[SIGAS] Error restaurando Jefe de Calle:', err)
@@ -427,8 +602,11 @@ export function useJefesCalle() {
     error,
     fetchCalles,
     fetchJefes,
+    callesDeJefe,
     crearJefe,
     actualizarJefe,
+    aprobarJefe,
+    rechazarJefe,
     cambiarActivo,
     darBajaJefe,
     restaurarJefe,

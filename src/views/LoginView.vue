@@ -83,6 +83,10 @@
           <button type="button" class="button2" @click="openRegister">Registrarse</button>
         </div>
 
+        <button type="button" class="button3 button3--jefe" @click="openRegistroJefe">
+          ¿Eres Jefe de Calle? Regístrate aquí
+        </button>
+
         <button type="button" class="button3" @click="openForgot">¿Olvidaste tu contraseña?</button>
 
         <p class="footnote">Al ingresar aceptas las políticas de uso y privacidad de SIGAS.</p>
@@ -317,6 +321,146 @@
         </div>
       </div>
     </Teleport>
+    <!-- MODAL DE AUTORREGISTRO DE JEFE DE CALLE -->
+    <Teleport to="body">
+      <div v-if="showRegistroJefe" class="modal-overlay" @click.self="closeRegistroJefe">
+        <div class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="registro-jefe-title">
+          <span class="modal-sheet-handle" aria-hidden="true"></span>
+          <button type="button" class="modal-close" aria-label="Cerrar" @click="closeRegistroJefe">×</button>
+          <h3 id="registro-jefe-title">Registro de Jefe de Calle</h3>
+          <p class="modal-hint">
+            Crea tu cuenta de acceso. Tu solicitud quedará en estado
+            <strong>PENDIENTE</strong> hasta que un administrador la apruebe y te asigne una o
+            varias calles.
+          </p>
+
+          <form class="modal-form register-form" @submit.prevent="handleRegistroJefe" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <input
+                  id="rj-cedula"
+                  v-model="regJefeCedula"
+                  v-restrict="{ tipo: 'digits', max: 10 }"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  minlength="5"
+                  maxlength="10"
+                  class="input-field"
+                  placeholder="Cédula"
+                  aria-label="Cédula del Jefe de Calle"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <input
+                  id="rj-nombre"
+                  v-model="regJefeNombre"
+                  v-restrict="{ tipo: 'nombre', max: 120 }"
+                  type="text"
+                  class="input-field"
+                  maxlength="120"
+                  placeholder="Nombre y Apellido"
+                  autocomplete="name"
+                  aria-label="Nombre y apellido"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <input
+                  id="rj-email"
+                  v-model="regJefeEmail"
+                  v-restrict="{ tipo: 'email', max: 254 }"
+                  type="email"
+                  class="input-field"
+                  maxlength="254"
+                  placeholder="Correo Electrónico"
+                  autocomplete="email"
+                  aria-label="Correo electrónico"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <input
+                  id="rj-telefono"
+                  v-model="regJefeTelefono"
+                  v-restrict="{ tipo: 'digits', max: 12 }"
+                  type="tel"
+                  inputmode="numeric"
+                  maxlength="12"
+                  class="input-field"
+                  placeholder="Teléfono"
+                  autocomplete="tel"
+                  aria-label="Teléfono"
+                />
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <input
+                  id="rj-password"
+                  v-model="regJefePassword"
+                  v-restrict="{ tipo: 'password', max: 72 }"
+                  :type="showRegJefePassword ? 'text' : 'password'"
+                  class="input-field"
+                  maxlength="72"
+                  placeholder="Contraseña"
+                  autocomplete="new-password"
+                  minlength="6"
+                  aria-label="Contraseña"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  :aria-label="showRegJefePassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                  @click="showRegJefePassword = !showRegJefePassword"
+                >
+                  <svg v-if="showRegJefePassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.4 10.4 0 0 1 12 5c5.5 0 9 7 9 7a17.6 17.6 0 0 1-3.2 4.1M6.2 6.2C4.1 7.8 3 10 3 12c0 0 3.5 7 9 7 1.1 0 2.1-.3 3-.7" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+                    <circle cx="12" cy="12" r="2.8" />
+                  </svg>
+                </button>
+              </div>
+
+              <div class="field">
+                <input
+                  id="rj-password-confirm"
+                  v-model="regJefePasswordConfirm"
+                  v-restrict="{ tipo: 'password', max: 72 }"
+                  :type="showRegJefePassword ? 'text' : 'password'"
+                  class="input-field"
+                  maxlength="72"
+                  placeholder="Confirmar contraseña"
+                  autocomplete="new-password"
+                  minlength="6"
+                  aria-label="Confirmar contraseña"
+                  required
+                />
+              </div>
+            </div>
+
+            <p v-if="registroJefeError" class="error-text" role="alert">{{ registroJefeError }}</p>
+            <p v-if="registroJefeNotice" class="notice-text" role="status">{{ registroJefeNotice }}</p>
+
+            <div class="modal-actions">
+              <button type="button" class="button2" :disabled="registroJefeLoading" @click="closeRegistroJefe">Cancelar</button>
+              <button type="submit" class="button1" :disabled="registroJefeLoading">
+                <span v-if="registroJefeLoading" class="btn-spinner" aria-hidden="true" />
+                {{ registroJefeLoading ? 'Enviando...' : 'Enviar solicitud' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -368,6 +512,18 @@ const registerNotice = ref('')
 const registerLoading = ref(false)
 const showRegPassword = ref(false)
 const listaCalles = ref([])
+
+const showRegistroJefe = ref(false)
+const regJefeCedula = ref('')
+const regJefeNombre = ref('')
+const regJefeEmail = ref('')
+const regJefeTelefono = ref('')
+const regJefePassword = ref('')
+const regJefePasswordConfirm = ref('')
+const registroJefeError = ref('')
+const registroJefeNotice = ref('')
+const registroJefeLoading = ref(false)
+const showRegJefePassword = ref(false)
 
 const cargoMap = { 1: 'admin', 2: 'jefe', 3: 'familia' }
 
@@ -428,6 +584,27 @@ function closeRegister() {
   showRegister.value = false
 }
 
+function openRegistroJefe() {
+  registroJefeError.value = ''
+  registroJefeNotice.value = ''
+  showRegistroJefe.value = true
+}
+
+function closeRegistroJefe() {
+  if (registroJefeLoading.value) return
+  showRegistroJefe.value = false
+}
+
+function limpiarFormularioRegistroJefe() {
+  regJefeCedula.value = ''
+  regJefeNombre.value = ''
+  regJefeEmail.value = ''
+  regJefeTelefono.value = ''
+  regJefePassword.value = ''
+  regJefePasswordConfirm.value = ''
+  showRegJefePassword.value = false
+}
+
 function limpiarFormularioRegistro() {
   regCedula.value = ''
   regNombre.value = ''
@@ -443,6 +620,9 @@ function limpiarFormularioRegistro() {
 
 function mensajeDeError(err, fallback) {
   const mensaje = String(err?.message || err?.error_description || '')
+  if (/could not find the function|PGRST202/i.test(mensaje)) {
+    return 'El sistema aún no está listo para el autorregistro de Jefes de Calle. Contacta al administrador.'
+  }
   if (/already registered|already exists|user already/i.test(mensaje)) {
     return 'Este correo electrónico ya está registrado. Inicia sesión o recupera tu contraseña.'
   }
@@ -524,7 +704,6 @@ async function handleLogin() {
         .from('jefe_de_calle')
         .select('*')
         .eq('auth_id', authData.user.id)
-        .eq('activo', true)
         .eq('is_deleted', false)
         .limit(1)
         .maybeSingle()
@@ -537,7 +716,7 @@ async function handleLogin() {
           id_calle: jefe.id_calle,
           id_cargo: 2,
           activo: jefe.activo,
-          estado: 'aprobado',
+          estado: jefe.estado || 'aprobado',
           is_deleted: jefe.is_deleted,
           codigo: jefe.codigo || null,
         }
@@ -566,6 +745,7 @@ async function handleLogin() {
     }
 
     const esFamilia = Number(perfilFinal.id_cargo) === 3
+    const esJefe = Number(perfilFinal.id_cargo) === 2
     const estado = String(perfilFinal.estado || 'aprobado').toLowerCase()
 
     if (esFamilia && estado === 'pendiente') {
@@ -577,6 +757,18 @@ async function handleLogin() {
     if (esFamilia && estado === 'rechazado') {
       const motivo = perfilFinal.notas_rechazo ? ` Motivo: ${perfilFinal.notas_rechazo}` : ''
       throw new Error(`Tu registro fue rechazado.${motivo}`)
+    }
+
+    if (esJefe && estado === 'pendiente') {
+      throw new Error(
+        'Tu solicitud como Jefe de Calle está PENDIENTE de aprobación. Un administrador te asignará una o varias calles y podrás iniciar sesión.'
+      )
+    }
+
+    if (esJefe && estado === 'rechazado') {
+      throw new Error(
+        'Tu solicitud como Jefe de Calle fue rechazada. Contacta al administrador para más información.'
+      )
     }
 
     if (perfilFinal.activo === false) {
@@ -907,6 +1099,115 @@ async function handleRegister() {
     )
   } finally {
     registerLoading.value = false
+  }
+}
+async function handleRegistroJefe() {
+  registroJefeError.value = ''
+  registroJefeNotice.value = ''
+
+  const cedula = regJefeCedula.value.trim()
+  const nombre = regJefeNombre.value.trim()
+  const email = regJefeEmail.value.trim()
+  const telefono = regJefeTelefono.value.trim()
+  const password = regJefePassword.value
+
+  const errores = [
+    validarCedula(cedula, { label: 'La cédula', min: 5, max: 10 }),
+    validarNombre(nombre, { label: 'El nombre', max: 120 }),
+    validarEmail(email),
+    validarTelefono(telefono, {
+      label: 'El teléfono',
+      required: false,
+      min: 7,
+      max: 12,
+    }),
+    validarPassword(password, { label: 'La contraseña', min: 6, max: 72 }),
+  ]
+
+  const primerError = errores.find(Boolean)
+  if (primerError) {
+    registroJefeError.value = primerError
+    return
+  }
+
+  if (password !== regJefePasswordConfirm.value) {
+    registroJefeError.value = 'Las contraseñas no coinciden.'
+    return
+  }
+
+  registroJefeLoading.value = true
+
+  try {
+    // 1. Verificar la cédula antes de crear la cuenta para no dejar cuentas
+    //    de Authentication huérfanas.
+    const { data: verificacion, error: verificacionError } = await supabase.rpc(
+      'verificar_cedula_jefe_calle',
+      { p_ci: cedula }
+    )
+
+    if (verificacionError) throw verificacionError
+
+    if (verificacion && verificacion.disponible === false) {
+      if (verificacion.tiene_cuenta) {
+        throw new Error(
+          'Esta cédula ya tiene una cuenta de acceso. Inicia sesión o usa «Olvidé mi contraseña».'
+        )
+      }
+      if (verificacion.en_familias) {
+        throw new Error(
+          'Esta cédula ya está registrada como familia. Usa otra cédula o contacta al administrador.'
+        )
+      }
+      throw new Error(
+        'Esta cédula ya está registrada como Jefe de Calle. Contacta al administrador.'
+      )
+    }
+
+    // 2. Crear la cuenta de acceso.
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    if (authError) throw authError
+
+    if (authData?.user?.identities && authData.user.identities.length === 0) {
+      throw new Error('Este correo electrónico ya se encuentra registrado en el sistema.')
+    }
+
+    if (!authData?.user?.id) {
+      throw new Error('No se pudo crear la cuenta. Intenta nuevamente.')
+    }
+
+    // 3. Crear o vincular la ficha en estado PENDIENTE.
+    const { data: resultado, error: rpcError } = await supabase.rpc(
+      'registrar_jefe_calle_pendiente',
+      {
+        p_nombre: nombre,
+        p_ci: cedula,
+        p_auth_id: authData.user.id,
+        p_telefono: telefono || null,
+        p_email: email,
+      }
+    )
+
+    if (rpcError) throw rpcError
+
+    await supabase.auth.signOut().catch(() => {})
+    limpiarFormularioRegistroJefe()
+
+    registroJefeNotice.value = resultado?.codigo
+      ? `Solicitud enviada. Tu código de Jefe de Calle es ${resultado.codigo}. Un administrador revisará tu cuenta y te asignará una o varias calles.`
+      : 'Solicitud enviada. Un administrador revisará tu cuenta y te asignará una o varias calles.'
+  } catch (err) {
+    console.error('[SIGAS] Error en autorregistro de Jefe de Calle:', err)
+    registroJefeError.value = mensajeDeError(
+      err,
+      'No se pudo enviar la solicitud. Intenta nuevamente.'
+    )
+    await supabase.auth.signOut().catch(() => {})
+  } finally {
+    registroJefeLoading.value = false
   }
 }
 </script>
@@ -1260,6 +1561,12 @@ async function handleRegister() {
 .button3:hover {
   color: #ffffff;
   text-decoration: underline;
+}
+
+.button3--jefe {
+  margin-top: 0.4em;
+  color: rgba(125, 211, 252, 0.95);
+  font-weight: 600;
 }
 
 .footnote {

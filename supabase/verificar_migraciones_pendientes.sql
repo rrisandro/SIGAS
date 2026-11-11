@@ -19,9 +19,12 @@ from information_schema.columns
 where table_schema = 'public'
   and (
     (table_name = 'familias' and column_name = 'codigo')
-    or (table_name = 'jefe_de_calle' and column_name = 'codigo')
+    or (
+      table_name = 'jefe_de_calle'
+      and column_name in ('codigo', 'ci', 'email')
+    )
   )
-order by table_name;
+order by table_name, column_name;
 
 select proname as funcion
 from pg_proc p
@@ -32,7 +35,12 @@ where n.nspname = 'public'
     'actualizar_jefe_familia',
     'vincular_cuenta_familia',
     'aprobar_registro_familia',
-    'verificar_cedula_registro'
+    'verificar_cedula_registro',
+    'verificar_cedula_jefe_calle',
+    'registrar_jefe_calle_pendiente',
+    'asignar_calles_jefe_calle',
+    'aprobar_jefe_calle',
+    'rechazar_jefe_calle'
   )
 order by proname;
 
@@ -94,6 +102,53 @@ where activo = true
   and is_deleted = false
 group by id_familia
 having count(*) > 1;
+
+-- ----------------------------------------------------------------------------
+-- 5b. Cédulas duplicadas entre Jefes de Calle vigentes.
+--     Debe devolver 0 filas. Si devuelve filas, corrige o da de baja la ficha
+--     duplicada antes de aplicar la migración.
+-- ----------------------------------------------------------------------------
+select
+  regexp_replace(ci, '\D', '', 'g') as cedula,
+  count(*) as jefes,
+  array_agg(id_jefe_calle order by id_jefe_calle) as ids_jefes
+from public.jefe_de_calle
+where ci is not null
+  and is_deleted = false
+  and regexp_replace(ci, '\D', '', 'g') <> ''
+group by regexp_replace(ci, '\D', '', 'g')
+having count(*) > 1;
+
+-- ----------------------------------------------------------------------------
+-- 5c. Cuentas vinculadas a más de un Jefe de Calle vigente.
+--     Debe devolver 0 filas.
+-- ----------------------------------------------------------------------------
+select
+  auth_id,
+  count(*) as jefes,
+  array_agg(id_jefe_calle order by id_jefe_calle) as ids_jefes
+from public.jefe_de_calle
+where auth_id is not null
+  and is_deleted = false
+group by auth_id
+having count(*) > 1;
+
+-- ----------------------------------------------------------------------------
+-- 5d. Cuentas con doble rol: familia y Jefe de Calle vigentes a la vez.
+--     Debe devolver 0 filas. La migración agrega un trigger que impide
+--     nuevos casos, pero no corrige los existentes.
+-- ----------------------------------------------------------------------------
+select
+  f.auth_id,
+  f.id as id_familia,
+  j.id_jefe_calle,
+  j.nombre as nombre_jefe_calle
+from public.familias f
+join public.jefe_de_calle j on j.auth_id = f.auth_id
+where f.auth_id is not null
+  and f.is_deleted = false
+  and j.is_deleted = false
+order by f.auth_id;
 
 -- ----------------------------------------------------------------------------
 -- 6. Familias vigentes sin calle asignada.

@@ -8,8 +8,8 @@
         </span>
         <h1>Jefes de Calle</h1>
         <p>
-          Administra los responsables de cada sector, su acceso al sistema y la
-          calle que tienen asignada. Las bajas son lógicas y pueden revertirse.
+          Administra los responsables de cada sector, su acceso al sistema y las
+          calles que tienen asignadas. Las bajas son lógicas y pueden revertirse.
         </p>
       </div>
 
@@ -42,7 +42,7 @@
           </svg>
         </span>
         <div>
-          <p class="stat-label">Total activos</p>
+          <p class="stat-label">Total vigentes</p>
           <p class="stat-value">{{ totalActivos }}</p>
         </div>
       </article>
@@ -67,6 +67,18 @@
         <div>
           <p class="stat-label">Sin calle</p>
           <p class="stat-value">{{ totalSinCalle }}</p>
+        </div>
+      </article>
+      <article class="stat-card stat-card--amber">
+        <span class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path stroke-linecap="round" d="M12 7v5l3 2" />
+          </svg>
+        </span>
+        <div>
+          <p class="stat-label">Pendientes</p>
+          <p class="stat-value">{{ totalPendientes }}</p>
         </div>
       </article>
       <article class="stat-card stat-card--red">
@@ -135,7 +147,7 @@
               <th>Código</th>
               <th>Nombre completo</th>
               <th>Teléfono</th>
-              <th>Calle asignada</th>
+              <th>Calles asignadas</th>
               <th>Acceso</th>
               <th>Estado</th>
               <th class="actions-head">Acciones</th>
@@ -166,8 +178,8 @@
               <td data-label="Teléfono">
                 <span class="muted-value">{{ jefe.telefono || 'No indicado' }}</span>
               </td>
-              <td data-label="Calle asignada">
-                <span class="badge-calle">{{ nombreCalle(jefe.id_calle) }}</span>
+              <td data-label="Calles asignadas">
+                <span class="badge-calle">{{ nombreCallesJefe(jefe) }}</span>
               </td>
               <td data-label="Acceso">
                 <span class="access-pill" :class="{ linked: Boolean(jefe.auth_id) }">
@@ -185,21 +197,41 @@
                     <button type="button" class="btn-row btn-row--edit" @click="abrirEditar(jefe)">
                       Editar
                     </button>
-                    <button
-                      type="button"
-                      class="btn-row"
-                      :class="jefe.activo ? 'btn-row--warning' : 'btn-row--success'"
-                      @click="abrirConfirmacion(jefe, jefe.activo ? 'desactivar' : 'activar')"
-                    >
-                      {{ jefe.activo ? 'Desactivar' : 'Activar' }}
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-row btn-row--danger"
-                      @click="abrirConfirmacion(jefe, 'baja')"
-                    >
-                      Dar de baja
-                    </button>
+                    <template v-if="esSolicitud(jefe)">
+                      <button
+                        type="button"
+                        class="btn-row btn-row--success"
+                        :disabled="accionLoading"
+                        @click="abrirAprobar(jefe)"
+                      >
+                        Aprobar
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-row btn-row--danger"
+                        :disabled="accionLoading"
+                        @click="abrirRechazar(jefe)"
+                      >
+                        Rechazar
+                      </button>
+                    </template>
+                    <template v-else>
+                      <button
+                        type="button"
+                        class="btn-row"
+                        :class="jefe.activo ? 'btn-row--warning' : 'btn-row--success'"
+                        @click="abrirConfirmacion(jefe, jefe.activo ? 'desactivar' : 'activar')"
+                      >
+                        {{ jefe.activo ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-row btn-row--danger"
+                        @click="abrirConfirmacion(jefe, 'baja')"
+                      >
+                        Dar de baja
+                      </button>
+                    </template>
                   </template>
                   <button
                     v-else
@@ -237,8 +269,8 @@
 
           <div class="mobile-details">
             <div>
-              <span>Calle</span>
-              <strong>{{ nombreCalle(jefe.id_calle) }}</strong>
+              <span>Calles</span>
+              <strong>{{ nombreCallesJefe(jefe) }}</strong>
             </div>
             <div>
               <span>Código</span>
@@ -263,21 +295,41 @@
               <button type="button" class="btn-row btn-row--edit" @click="abrirEditar(jefe)">
                 Editar
               </button>
-              <button
-                type="button"
-                class="btn-row"
-                :class="jefe.activo ? 'btn-row--warning' : 'btn-row--success'"
-                @click="abrirConfirmacion(jefe, jefe.activo ? 'desactivar' : 'activar')"
-              >
-                {{ jefe.activo ? 'Desactivar' : 'Activar' }}
-              </button>
-              <button
-                type="button"
-                class="btn-row btn-row--danger"
-                @click="abrirConfirmacion(jefe, 'baja')"
-              >
-                Dar de baja
-              </button>
+              <template v-if="esSolicitud(jefe)">
+                <button
+                  type="button"
+                  class="btn-row btn-row--success"
+                  :disabled="accionLoading"
+                  @click="abrirAprobar(jefe)"
+                >
+                  Aprobar
+                </button>
+                <button
+                  type="button"
+                  class="btn-row btn-row--danger"
+                  :disabled="accionLoading"
+                  @click="abrirRechazar(jefe)"
+                >
+                  Rechazar
+                </button>
+              </template>
+              <template v-else>
+                <button
+                  type="button"
+                  class="btn-row"
+                  :class="jefe.activo ? 'btn-row--warning' : 'btn-row--success'"
+                  @click="abrirConfirmacion(jefe, jefe.activo ? 'desactivar' : 'activar')"
+                >
+                  {{ jefe.activo ? 'Desactivar' : 'Activar' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-row btn-row--danger"
+                  @click="abrirConfirmacion(jefe, 'baja')"
+                >
+                  Dar de baja
+                </button>
+              </template>
             </template>
             <button
               v-else
@@ -350,14 +402,45 @@
               </label>
 
               <label class="form-field">
-                <span>Calle asignada</span>
-                <select v-model="form.id_calle">
-                  <option value="">Sin calle asignada</option>
-                  <option v-for="calle in callesDisponibles" :key="calle.id_calle" :value="calle.id_calle">
-                    {{ calle.nombre }}
-                  </option>
-                </select>
+                <span>Correo electrónico</span>
+                <input
+                  v-model="form.email"
+                  v-restrict="{ tipo: 'email', max: 254 }"
+                  type="email"
+                  maxlength="254"
+                  placeholder="correo@ejemplo.com"
+                  autocomplete="email"
+                />
+                <small>Se usa para contactar al Jefe de Calle y validar su cuenta.</small>
               </label>
+
+              <div class="form-field form-field--full">
+                <span>Calles asignadas</span>
+                <p v-if="callesDisponibles.length === 0" class="calles-empty">
+                  No hay calles disponibles para asignar.
+                </p>
+                <div v-else class="calle-checkbox-list">
+                  <label
+                    v-for="calle in callesDisponibles"
+                    :key="calle.id_calle"
+                    class="calle-checkbox"
+                    :class="{ 'is-selected': form.id_calles.includes(Number(calle.id_calle)) }"
+                  >
+                    <input
+                      v-model="form.id_calles"
+                      type="checkbox"
+                      :value="Number(calle.id_calle)"
+                    />
+                    <span>{{ calle.nombre }}</span>
+                    <small v-if="calle.id_jefe_calle && Number(calle.id_jefe_calle) !== Number(form.id_jefe_calle)">
+                      Ocupada
+                    </small>
+                  </label>
+                </div>
+                <small>
+                  Puedes asignar varias calles. La primera que selecciones será la principal.
+                </small>
+              </div>
 
               <label class="form-field">
                 <span>ID de acceso (opcional)</span>
@@ -393,6 +476,105 @@
       </div>
     </Teleport>
 
+    <Teleport to="body">
+      <div v-if="aprobarOpen" class="modal-overlay" @click.self="cerrarAprobar">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Aprobar Jefe de Calle">
+          <span class="modal-handle" aria-hidden="true" />
+
+          <div class="modal-head">
+            <div>
+              <p class="modal-eyebrow">Solicitud pendiente</p>
+              <h2>Aprobar Jefe de Calle</h2>
+            </div>
+            <button type="button" class="modal-close" aria-label="Cerrar" @click="cerrarAprobar">×</button>
+          </div>
+
+          <p class="modal-hint">
+            {{ aprobarJefeData?.nombre || 'Esta persona' }} podrá iniciar sesión y gestionar
+            las calles que selecciones.
+          </p>
+
+          <div class="form-field form-field--full">
+            <span>Calles asignadas</span>
+            <p v-if="callesAprobar.length === 0" class="calles-empty">
+              No hay calles disponibles para asignar.
+            </p>
+            <div v-else class="calle-checkbox-list">
+              <label
+                v-for="calle in callesAprobar"
+                :key="calle.id_calle"
+                class="calle-checkbox"
+                :class="{ 'is-selected': aprobarCalles.includes(Number(calle.id_calle)) }"
+              >
+                <input
+                  v-model="aprobarCalles"
+                  type="checkbox"
+                  :value="Number(calle.id_calle)"
+                />
+                <span>{{ calle.nombre }}</span>
+              </label>
+            </div>
+            <small>La primera calle seleccionada será la principal.</small>
+          </div>
+
+          <p v-if="aprobarError" class="form-error" role="alert">{{ aprobarError }}</p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" :disabled="accionLoading" @click="cerrarAprobar">
+              Cancelar
+            </button>
+            <button type="button" class="btn-primary" :disabled="accionLoading" @click="confirmarAprobar">
+              {{ accionLoading ? 'Aprobando…' : 'Aprobar Jefe de Calle' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="rechazarOpen" class="modal-overlay" @click.self="cerrarRechazar">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Rechazar Jefe de Calle">
+          <span class="modal-handle" aria-hidden="true" />
+
+          <div class="modal-head">
+            <div>
+              <p class="modal-eyebrow">Solicitud pendiente</p>
+              <h2>Rechazar Jefe de Calle</h2>
+            </div>
+            <button type="button" class="modal-close" aria-label="Cerrar" @click="cerrarRechazar">×</button>
+          </div>
+
+          <p class="modal-hint">
+            ¿Rechazar la solicitud de {{ rechazarJefeData?.nombre || 'esta persona' }}?
+            La ficha se conservará y podrá aprobarse más adelante.
+          </p>
+
+          <label class="form-field form-field--full">
+            <span>Motivo del rechazo</span>
+            <textarea
+              v-model="rechazarMotivo"
+              v-restrict="{ tipo: 'texto', max: 500 }"
+              rows="3"
+              maxlength="500"
+              placeholder="Explica brevemente por qué se rechaza la solicitud…"
+            />
+            <small>La persona recibirá este motivo en su cuenta.</small>
+          </label>
+
+          <p v-if="rechazarError" class="form-error" role="alert">{{ rechazarError }}</p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" :disabled="accionLoading" @click="cerrarRechazar">
+              Cancelar
+            </button>
+            <button type="button" class="btn-primary btn-primary--danger" :disabled="accionLoading" @click="confirmarRechazar">
+              {{ accionLoading ? 'Rechazando…' : 'Rechazar solicitud' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <ConfirmDialog
       v-model="confirmOpen"
       :title="confirmTitle"
@@ -413,6 +595,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
 import { useJefesCalle } from '../../composables/useJefesCalle.js'
 import {
   validarCedula,
+  validarEmail,
   validarNombre,
   validarTelefono,
   validarUuid,
@@ -426,8 +609,11 @@ const {
   error,
   fetchCalles,
   fetchJefes,
+  callesDeJefe,
   crearJefe,
   actualizarJefe,
+  aprobarJefe,
+  rechazarJefe,
   cambiarActivo,
   darBajaJefe,
   restaurarJefe,
@@ -448,7 +634,8 @@ const form = reactive({
   nombre: '',
   ci: '',
   telefono: '',
-  id_calle: '',
+  email: '',
+  id_calles: [],
   auth_id: '',
   activo: true,
 })
@@ -458,35 +645,59 @@ const confirmAction = ref('')
 const confirmError = ref('')
 const seleccionado = ref(null)
 
+const aprobarOpen = ref(false)
+const aprobarJefeData = ref(null)
+const aprobarCalles = ref([])
+const aprobarError = ref('')
+
+const rechazarOpen = ref(false)
+const rechazarJefeData = ref(null)
+const rechazarMotivo = ref('')
+const rechazarError = ref('')
+
 const formTitle = computed(() =>
   modoEdicion.value ? 'Editar Jefe de Calle' : 'Registrar Jefe de Calle'
 )
 
-const callesDisponibles = computed(() => {
-  const jefeActual = Number(form.id_jefe_calle)
+function callesParaJefe(jefe) {
+  const jefeId = Number(jefe?.id_jefe_calle)
 
   return calles.value.filter((calle) => {
     if (!calle.id_jefe_calle) return true
-    if (Number(calle.id_jefe_calle) === jefeActual) return true
+    if (Number(calle.id_jefe_calle) === jefeId) return true
 
     const ocupante = jefes.value.find(
-      (jefe) => Number(jefe.id_jefe_calle) === Number(calle.id_jefe_calle)
+      (item) => Number(item.id_jefe_calle) === Number(calle.id_jefe_calle)
     )
 
     return !ocupante || ocupante.is_deleted || !ocupante.activo
   })
-})
+}
+
+const callesDisponibles = computed(() => callesParaJefe(form))
+const callesAprobar = computed(() => callesParaJefe(aprobarJefeData.value))
 
 const jefesActivos = computed(() => jefes.value.filter((jefe) => !jefe.is_deleted))
 const totalActivos = computed(() => jefesActivos.value.length)
 const totalConCalle = computed(
-  () => jefesActivos.value.filter((jefe) => Boolean(jefe.id_calle)).length
+  () => jefesActivos.value.filter((jefe) => callesDeJefe(jefe).length > 0).length
 )
 const totalSinCalle = computed(
-  () => jefesActivos.value.filter((jefe) => !jefe.id_calle).length
+  () => jefesActivos.value.filter((jefe) => callesDeJefe(jefe).length === 0).length
+)
+const totalPendientes = computed(
+  () =>
+    jefesActivos.value.filter(
+      (jefe) => String(jefe.estado || '').toLowerCase() === 'pendiente'
+    ).length
 )
 const totalInactivos = computed(
-  () => jefesActivos.value.filter((jefe) => !jefe.activo).length
+  () =>
+    jefesActivos.value.filter(
+      (jefe) =>
+        String(jefe.estado || 'aprobado').toLowerCase() === 'aprobado' &&
+        !jefe.activo
+    ).length
 )
 
 const jefesFiltrados = computed(() => {
@@ -494,16 +705,19 @@ const jefesFiltrados = computed(() => {
 
   return jefes.value.filter((jefe) => {
     if (!incluirEliminados.value && jefe.is_deleted) return false
-    if (filtroCalle.value === 'sin-calle' && jefe.id_calle) return false
+
+    const callesJefe = callesDeJefe(jefe).map((calle) => Number(calle.id_calle))
+
+    if (filtroCalle.value === 'sin-calle' && callesJefe.length > 0) return false
     if (
       filtroCalle.value !== 'todas' &&
       filtroCalle.value !== 'sin-calle' &&
-      Number(jefe.id_calle) !== Number(filtroCalle.value)
+      !callesJefe.includes(Number(filtroCalle.value))
     ) {
       return false
     }
     if (!q) return true
-    return [jefe.nombre, jefe.ci, jefe.codigo, jefe.telefono]
+    return [jefe.nombre, jefe.ci, jefe.codigo, jefe.telefono, jefe.email]
       .some((value) => String(value || '').toLowerCase().includes(q))
   })
 })
@@ -521,19 +735,19 @@ const confirmTitle = computed(() => {
 
 const confirmMessage = computed(() => {
   const nombre = seleccionado.value?.nombre || 'este Jefe de Calle'
-  const calle = nombreCalle(seleccionado.value?.id_calle)
+  const callesTexto = nombreCallesJefe(seleccionado.value)
 
   if (confirmAction.value === 'baja') {
-    return `¿Dar de baja a ${nombre}? Dejará de recibir notificaciones y no podrá gestionar ${calle}. La ficha se conservará y podrá restaurarse.`
+    return `¿Dar de baja a ${nombre}? Dejará de recibir notificaciones y no podrá gestionar ${callesTexto}. La ficha se conservará y podrá restaurarse.`
   }
   if (confirmAction.value === 'restaurar') {
-    return `¿Restaurar a ${nombre}? Volverá a estar activo y se le asignará ${calle}.`
+    return `¿Restaurar a ${nombre}? Volverá a estar activo y se le asignará ${callesTexto}.`
   }
   if (confirmAction.value === 'desactivar') {
-    return `¿Desactivar a ${nombre}? Su cuenta seguirá existiendo, pero no podrá gestionar ${calle} ni recibir notificaciones.`
+    return `¿Desactivar a ${nombre}? Su cuenta seguirá existiendo, pero no podrá gestionar ${callesTexto} ni recibir notificaciones.`
   }
   if (confirmAction.value === 'activar') {
-    return `¿Activar a ${nombre}? Volverá a gestionar ${calle} y recibirá las notificaciones de su zona.`
+    return `¿Activar a ${nombre}? Volverá a gestionar ${callesTexto} y recibirá las notificaciones de su zona.`
   }
   return ''
 })
@@ -576,7 +790,8 @@ function abrirCrear() {
     nombre: '',
     ci: '',
     telefono: '',
-    id_calle: '',
+    email: '',
+    id_calles: [],
     auth_id: '',
     activo: true,
   })
@@ -586,13 +801,15 @@ function abrirCrear() {
 function abrirEditar(jefe) {
   modoEdicion.value = true
   formError.value = ''
+  const callesAsignadas = callesDeJefe(jefe).map((calle) => Number(calle.id_calle))
   Object.assign(form, {
     id_jefe_calle: jefe.id_jefe_calle,
     codigo: jefe.codigo || '',
     nombre: jefe.nombre || '',
     ci: jefe.ci || '',
     telefono: jefe.telefono || '',
-    id_calle: jefe.id_calle ?? '',
+    email: jefe.email || '',
+    id_calles: callesAsignadas,
     auth_id: jefe.auth_id || '',
     activo: Boolean(jefe.activo),
   })
@@ -644,9 +861,17 @@ async function guardar() {
     return
   }
 
-  if (form.id_calle) {
+  const emailError = form.email
+    ? validarEmail(form.email, { label: 'El correo electrónico' })
+    : ''
+  if (emailError) {
+    formError.value = emailError
+    return
+  }
+
+  for (const idCalle of form.id_calles) {
     const calle = calles.value.find(
-      (item) => Number(item.id_calle) === Number(form.id_calle)
+      (item) => Number(item.id_calle) === Number(idCalle)
     )
     const ocupanteId = calle?.id_jefe_calle
 
@@ -656,7 +881,7 @@ async function guardar() {
       )
 
       if (ocupante && !ocupante.is_deleted && ocupante.activo) {
-        formError.value = 'Esa calle ya está asignada a otro Jefe de Calle activo.'
+        formError.value = `La calle ${calle?.nombre || idCalle} ya está asignada a otro Jefe de Calle activo.`
         return
       }
     }
@@ -666,7 +891,8 @@ async function guardar() {
     nombre: form.nombre,
     ci: form.ci,
     telefono: form.telefono,
-    id_calle: form.id_calle,
+    email: form.email,
+    id_calles: [...form.id_calles],
     auth_id: form.auth_id,
     activo: form.activo,
   }
@@ -696,6 +922,77 @@ function abrirConfirmacion(jefe, accion) {
   confirmAction.value = accion
   confirmError.value = ''
   confirmOpen.value = true
+}
+
+function abrirAprobar(jefe) {
+  aprobarJefeData.value = jefe
+  aprobarCalles.value = callesDeJefe(jefe).map((calle) => Number(calle.id_calle))
+  aprobarError.value = ''
+  aprobarOpen.value = true
+}
+
+function cerrarAprobar() {
+  if (accionLoading.value) return
+  aprobarOpen.value = false
+}
+
+async function confirmarAprobar() {
+  if (!aprobarJefeData.value) return
+  aprobarError.value = ''
+
+  const result = await aprobarJefe(
+    aprobarJefeData.value.id_jefe_calle,
+    aprobarCalles.value
+  )
+
+  if (!result) {
+    aprobarError.value = error.value || 'No se pudo aprobar el Jefe de Calle.'
+    return
+  }
+
+  const nombre = aprobarJefeData.value.nombre || 'El Jefe de Calle'
+  aprobarOpen.value = false
+  aprobarJefeData.value = null
+  mostrarExito(`${nombre} fue aprobado y ya puede iniciar sesión.`)
+  await cargar()
+}
+
+function abrirRechazar(jefe) {
+  rechazarJefeData.value = jefe
+  rechazarMotivo.value = ''
+  rechazarError.value = ''
+  rechazarOpen.value = true
+}
+
+function cerrarRechazar() {
+  if (accionLoading.value) return
+  rechazarOpen.value = false
+}
+
+async function confirmarRechazar() {
+  if (!rechazarJefeData.value) return
+  rechazarError.value = ''
+
+  if (!rechazarMotivo.value.trim()) {
+    rechazarError.value = 'Indica el motivo del rechazo.'
+    return
+  }
+
+  const result = await rechazarJefe(
+    rechazarJefeData.value.id_jefe_calle,
+    rechazarMotivo.value
+  )
+
+  if (!result) {
+    rechazarError.value = error.value || 'No se pudo rechazar el Jefe de Calle.'
+    return
+  }
+
+  const nombre = rechazarJefeData.value.nombre || 'El Jefe de Calle'
+  rechazarOpen.value = false
+  rechazarJefeData.value = null
+  mostrarExito(`Se rechazó la solicitud de ${nombre}.`)
+  await cargar()
 }
 
 async function ejecutarConfirmacion() {
@@ -744,19 +1041,34 @@ function inicial(nombre) {
   return String(nombre || 'J').trim().charAt(0).toUpperCase() || 'J'
 }
 
-function nombreCalle(idCalle) {
-  if (!idCalle) return 'sin calle asignada'
-  const calle = calles.value.find((item) => Number(item.id_calle) === Number(idCalle))
-  return calle?.nombre || `Calle ID ${idCalle}`
+function esSolicitud(jefe) {
+  const estado = String(jefe?.estado || '').toLowerCase()
+  return estado === 'pendiente' || estado === 'rechazado'
+}
+
+function esPendiente(jefe) {
+  return String(jefe?.estado || '').toLowerCase() === 'pendiente'
+}
+
+function nombreCallesJefe(jefe) {
+  const asignadas = callesDeJefe(jefe)
+  if (asignadas.length === 0) return 'Sin calle asignada'
+  return asignadas.map((calle) => calle.nombre).join(', ')
 }
 
 function estadoLabel(jefe) {
   if (jefe.is_deleted) return 'Dado de baja'
+  const estado = String(jefe.estado || '').toLowerCase()
+  if (estado === 'pendiente') return 'Pendiente'
+  if (estado === 'rechazado') return 'Rechazado'
   return jefe.activo ? 'Activo' : 'Inactivo'
 }
 
 function estadoClase(jefe) {
   if (jefe.is_deleted) return 'is-deleted'
+  const estado = String(jefe.estado || '').toLowerCase()
+  if (estado === 'pendiente') return 'is-pending'
+  if (estado === 'rechazado') return 'is-rejected'
   return jefe.activo ? 'is-active' : 'is-inactive'
 }
 </script>
@@ -876,6 +1188,17 @@ function estadoClase(jefe) {
 .btn-primary:hover:not(:disabled) {
   background: #0284c7;
   border-color: #0369a1;
+}
+
+.btn-primary--danger {
+  border-color: #dc2626;
+  background: #ef4444;
+  box-shadow: 0 6px 16px -8px rgba(239, 68, 68, 0.7);
+}
+
+.btn-primary--danger:hover:not(:disabled) {
+  background: #dc2626;
+  border-color: #b91c1c;
 }
 
 .btn-refresh:disabled,
@@ -1301,6 +1624,18 @@ function estadoClase(jefe) {
   color: #b45309;
 }
 
+.status-pill.is-pending {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.status-pill.is-rejected {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .status-pill.is-deleted {
   border-color: #fecaca;
   background: #fef2f2;
@@ -1601,6 +1936,89 @@ function estadoClase(jefe) {
   line-height: 1.4;
 }
 
+.form-field textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  outline: none;
+  resize: vertical;
+}
+
+.form-field textarea:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.modal-hint {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.calles-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 11px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.calle-checkbox-list {
+  display: grid;
+  gap: 7px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.calle-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.calle-checkbox.is-selected {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.calle-checkbox input {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: #0ea5e9;
+}
+
+.calle-checkbox small {
+  margin-left: auto;
+  color: #b45309;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .form-field--full {
   grid-column: 1 / -1;
 }
@@ -1716,7 +2134,7 @@ function estadoClase(jefe) {
   }
 
   .stats-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
   }
 
@@ -1754,6 +2172,10 @@ function estadoClase(jefe) {
 @media (min-width: 1024px) {
   .page-banner {
     padding: 28px 32px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .toolbar-card {

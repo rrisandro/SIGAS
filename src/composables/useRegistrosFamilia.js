@@ -41,6 +41,7 @@ function esRpcInexistente(error) {
 export function useRegistrosFamilia() {
   const jefe = ref(null)
   const calleId = ref(null)
+  const callesIds = ref([])
   const registros = ref([])
   const jefesFamilia = ref([])
   const calles = ref([])
@@ -110,22 +111,27 @@ export function useRegistrosFamilia() {
 
     if (!jefe.value) {
       calleId.value = null
+      callesIds.value = []
       return
     }
 
-    let idCalle = jefe.value.id_calle || null
+    // Todas las calles asignadas viven en calles.id_jefe_calle. Se conserva
+    // jefe_de_calle.id_calle como calle principal y fallback de compatibilidad.
+    const { data: callesAsignadas } = await supabase
+      .from('calles')
+      .select('id_calle, nombre')
+      .eq('id_jefe_calle', jefe.value.id_jefe_calle)
+      .eq('is_deleted', false)
+      .order('nombre')
 
-    if (!idCalle) {
-      const { data: calleData } = await supabase
-        .from('calles')
-        .select('id_calle')
-        .eq('id_jefe_calle', jefe.value.id_jefe_calle)
-        .eq('is_deleted', false)
-        .limit(1)
-      idCalle = calleData?.[0]?.id_calle || null
+    let ids = (callesAsignadas || []).map((calle) => Number(calle.id_calle))
+
+    if (ids.length === 0 && jefe.value.id_calle) {
+      ids = [Number(jefe.value.id_calle)]
     }
 
-    calleId.value = idCalle
+    callesIds.value = ids
+    calleId.value = ids[0] || null
 
     const { data: callesData } = await supabase
       .from('calles')
@@ -137,7 +143,7 @@ export function useRegistrosFamilia() {
   }
 
   async function cargarRegistros() {
-    if (!calleId.value) {
+    if (callesIds.value.length === 0) {
       registros.value = []
       return
     }
@@ -145,7 +151,7 @@ export function useRegistrosFamilia() {
     const { data, error: queryError } = await supabase
       .from('familias')
       .select('*')
-      .eq('id_calle', calleId.value)
+      .in('id_calle', callesIds.value)
       // Familias censadas antes de que existiera id_cargo quedaron con
       // id_cargo nulo. Deben seguir apareciendo para poder registrar a su
       // Jefe de Familia.
@@ -158,7 +164,7 @@ export function useRegistrosFamilia() {
   }
 
   async function cargarJefesFamilia() {
-    if (!calleId.value) {
+    if (callesIds.value.length === 0) {
       jefesFamilia.value = []
       return
     }
@@ -166,7 +172,7 @@ export function useRegistrosFamilia() {
     const { data, error: queryError } = await supabase
       .from('jefes_familia')
       .select('*')
-      .eq('id_calle', calleId.value)
+      .in('id_calle', callesIds.value)
       .eq('is_deleted', false)
       .order('id_jefe_familia', { ascending: false })
 
@@ -179,7 +185,7 @@ export function useRegistrosFamilia() {
     error.value = ''
     try {
       await cargarContexto()
-      if (calleId.value) {
+      if (callesIds.value.length > 0) {
         await Promise.all([cargarRegistros(), cargarJefesFamilia()])
       } else {
         registros.value = []
@@ -673,6 +679,7 @@ export function useRegistrosFamilia() {
   return {
     jefe,
     calleId,
+    callesIds,
     registros,
     jefesFamilia,
     calles,

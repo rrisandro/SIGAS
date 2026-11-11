@@ -118,12 +118,16 @@ const picosDisponibles = [
 // Computed para filtrar familias
 const familiasDisponibles = computed(() => {
   if (!familias.value) return []
+  if (!jefe.value) return []
+
+  const idsCalles = calles.value.map((calle) => Number(calle.id_calle))
+  if (idsCalles.length === 0) return []
+
   const filtradas = familias.value.filter((f) => {
     if (familiasConPedido.value.includes(String(f.id))) return false
     if (String(f.estado || 'aprobado').toLowerCase() !== 'aprobado') return false
     if (f.activo === false) return false
-    if (!jefe.value?.id_calle) return true
-    return Number(f.id_calle) === Number(jefe.value.id_calle)
+    return idsCalles.includes(Number(f.id_calle))
   })
   return filtradas
 })
@@ -190,12 +194,27 @@ onMounted(async () => {
         .maybeSingle()
       jefe.value = jefeData
 
-      // El Jefe de Calle solo registra solicitudes para su propia calle.
-      if (jefeData?.id_calle) {
+      // El Jefe de Calle puede gestionar todas las calles que tenga asignadas.
+      const idsAsignadas = calles.value
+        .filter(
+          (calle) => Number(calle.id_jefe_calle) === Number(jefeData?.id_jefe_calle)
+        )
+        .map((calle) => Number(calle.id_calle))
+
+      if (idsAsignadas.length > 0) {
+        calles.value = calles.value.filter((calle) =>
+          idsAsignadas.includes(Number(calle.id_calle))
+        )
+      } else if (jefeData?.id_calle) {
         calles.value = calles.value.filter(
           (calle) => Number(calle.id_calle) === Number(jefeData.id_calle)
         )
+      } else {
+        // Sin calles asignadas no debe mostrarse ninguna familia.
+        calles.value = []
       }
+    } else {
+      calles.value = []
     }
   } catch (err) {
     console.error('❌ Error general:', err)
