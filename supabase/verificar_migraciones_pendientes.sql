@@ -251,6 +251,36 @@ begin
   end if;
 end $$;
 
+-- ----------------------------------------------------------------------------
+-- 10. Cuentas con auth_id que ya no existen en Authentication.
+--     Es informativo: las notificaciones a esas cuentas fallarían por la FK
+--     de notificaciones. La migración 20261109 endurece las funciones para
+--     omitirlas, pero conviene corregir o limpiar esas filas.
+-- ----------------------------------------------------------------------------
+select
+  'familias' as tabla,
+  f.id as id_registro,
+  f.nombre_familia as nombre,
+  f.id_cargo,
+  f.auth_id
+from public.familias f
+left join auth.users u on u.id = f.auth_id
+where f.auth_id is not null
+  and u.id is null
+order by f.id_cargo, f.id;
+
+select
+  'jefe_de_calle' as tabla,
+  j.id_jefe_calle as id_registro,
+  j.nombre,
+  null::integer as id_cargo,
+  j.auth_id
+from public.jefe_de_calle j
+left join auth.users u on u.id = j.auth_id
+where j.auth_id is not null
+  and u.id is null
+order by j.id_jefe_calle;
+
 -- ============================================================================
 -- Si todas las consultas de duplicados devolvieron 0 filas, puedes ejecutar
 -- `supabase/aplicar_migraciones_pendientes.sql` completo.

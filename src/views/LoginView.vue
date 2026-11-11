@@ -647,6 +647,9 @@ function mensajeDeError(err, fallback) {
   if (/fue dada de baja/i.test(mensaje)) {
     return mensaje
   }
+  if (/notificaciones_destinatario_auth_id_fkey|violates foreign key constraint/i.test(mensaje)) {
+    return 'No se pudo notificar a los administradores porque una cuenta de administrador no es válida. Contacta al administrador del sistema.'
+  }
   if (/duplicate key|ya existe|cedula|cédula/i.test(mensaje)) {
     return 'Ya existe un registro con esa cédula. Si es tuyo, contacta al Jefe de Calle.'
   }

@@ -1883,8 +1883,8 @@ begin
       'email', v_email
     )
   from public.familias f
+  join auth.users u on u.id = f.auth_id
   where f.id_cargo = 1
-    and f.auth_id is not null
     and f.activo = true
     and f.is_deleted = false;
 
@@ -2115,6 +2115,64 @@ begin
   return jsonb_build_object('ok', true, 'id_jefe_calle', p_id_jefe_calle);
 end;
 $$;
+
+-- ----------------------------------------------------------------------------
+-- 10b. Endurecer sigas_notificar para destinatarios inexistentes.
+--      Evita que una notificación a una cuenta eliminada rompa la operación
+--      completa (por ejemplo, el autorregistro de un Jefe de Calle).
+-- ----------------------------------------------------------------------------
+create or replace function public.sigas_notificar(
+  p_destinatario_auth_id uuid,
+  p_id_jefe_calle integer,
+  p_id_familia integer,
+  p_tipo text,
+  p_titulo text,
+  p_mensaje text,
+  p_metadata jsonb default '{}'::jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if p_destinatario_auth_id is null then
+    return;
+  end if;
+
+  -- La FK de notificaciones apunta a auth.users. Si la cuenta ya no existe,
+  -- se omite la notificación en lugar de fallar toda la transacción.
+  if not exists (
+    select 1
+    from auth.users u
+    where u.id = p_destinatario_auth_id
+  ) then
+    return;
+  end if;
+
+  insert into public.notificaciones (
+    destinatario_auth_id,
+    id_jefe_calle,
+    id_familia,
+    tipo,
+    titulo,
+    mensaje,
+    metadata
+  )
+  values (
+    p_destinatario_auth_id,
+    p_id_jefe_calle,
+    p_id_familia,
+    p_tipo,
+    p_titulo,
+    p_mensaje,
+    coalesce(p_metadata, '{}'::jsonb)
+  );
+end;
+$$;
+
+revoke all on function public.sigas_notificar(uuid, integer, integer, text, text, text, jsonb)
+  from public;
 
 -- ----------------------------------------------------------------------------
 -- 11. Permisos.
