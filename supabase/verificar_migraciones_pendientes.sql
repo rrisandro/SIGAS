@@ -107,17 +107,47 @@ having count(*) > 1;
 -- 5b. Cédulas duplicadas entre Jefes de Calle vigentes.
 --     Debe devolver 0 filas. Si devuelve filas, corrige o da de baja la ficha
 --     duplicada antes de aplicar la migración.
+--     Se ejecuta con SQL dinámico porque la columna `ci` se agrega en la
+--     migración 20261109 y puede no existir todavía.
 -- ----------------------------------------------------------------------------
-select
-  regexp_replace(ci, '\D', '', 'g') as cedula,
-  count(*) as jefes,
-  array_agg(id_jefe_calle order by id_jefe_calle) as ids_jefes
-from public.jefe_de_calle
-where ci is not null
-  and is_deleted = false
-  and regexp_replace(ci, '\D', '', 'g') <> ''
-group by regexp_replace(ci, '\D', '', 'g')
-having count(*) > 1;
+do $$
+declare
+  v_dup record;
+  v_encontrado boolean := false;
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'jefe_de_calle'
+      and column_name = 'ci'
+  ) then
+    raise notice 'La columna jefe_de_calle.ci aún no existe; no hay cédulas duplicadas que revisar.';
+    return;
+  end if;
+
+  for v_dup in execute $q$
+    select
+      regexp_replace(ci, '\D', '', 'g') as cedula,
+      count(*) as jefes,
+      array_agg(id_jefe_calle order by id_jefe_calle) as ids_jefes
+    from public.jefe_de_calle
+    where ci is not null
+      and is_deleted = false
+      and regexp_replace(ci, '\D', '', 'g') <> ''
+    group by regexp_replace(ci, '\D', '', 'g')
+    having count(*) > 1
+  $q$
+  loop
+    v_encontrado := true;
+    raise warning
+      'Cédula duplicada en Jefes de Calle: % (jefes: %, ids: %)',
+      v_dup.cedula, v_dup.jefes, v_dup.ids_jefes;
+  end loop;
+
+  if not v_encontrado then
+    raise notice 'Sin cédulas duplicadas entre Jefes de Calle vigentes.';
+  end if;
+end $$;
 
 -- ----------------------------------------------------------------------------
 -- 5c. Cuentas vinculadas a más de un Jefe de Calle vigente.
