@@ -157,6 +157,13 @@
         </div>
       </div>
 
+      <div v-if="rolError" class="role-alert role-alert--error" role="alert">
+        {{ rolError }}
+      </div>
+      <div v-if="rolSuccess" class="role-alert role-alert--success" role="status">
+        {{ rolSuccess }}
+      </div>
+
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando registros de usuarios...</p>
@@ -189,6 +196,7 @@
                   @change="actualizarRol(familia)"
                   class="role-select"
                   :class="'role-' + familia.id_cargo"
+                  :disabled="rolActualizando === familia.id"
                 >
                   <option :value="1">Administrador</option>
                   <option :value="2">Jefe de Calle</option>
@@ -220,6 +228,16 @@ const cicloActivo = ref(null)
 const pedidosCiclo = ref([])
 const filtroBusqueda = ref('')
 const loading = ref(true)
+const rolError = ref('')
+const rolSuccess = ref('')
+const rolActualizando = ref(null)
+const rolesOriginales = new Map()
+
+const nombresRol = {
+  1: 'Administrador',
+  2: 'Jefe de Calle',
+  3: 'Familia',
+}
 
 // Controles de Paginación (5 por vista)
 const paginaActual = ref(1)
@@ -273,6 +291,10 @@ async function cargarDatos() {
       .eq('is_deleted', false)
     if (!error && familiasData) {
       familias.value = familiasData
+      rolesOriginales.clear()
+      for (const familia of familiasData) {
+        rolesOriginales.set(familia.id, familia.id_cargo)
+      }
     }
 
     // 1. Consultar el ciclo que esté activo
@@ -312,20 +334,63 @@ async function cargarDatos() {
   }
 }
 
+function mensajeErrorRol(err) {
+  const mensaje = String(err?.message || err || '')
+  if (/No tienes permiso|42501|row-level security/i.test(mensaje)) {
+    return (
+      'La base de datos no reconoce tu cuenta como administrador. ' +
+      'Tu usuario de Authentication debe coincidir con el auth_id de tu fila en familias ' +
+      '(id_cargo = 1, activo = true, is_deleted = false).'
+    )
+  }
+  if (/violates foreign key|23503/i.test(mensaje)) {
+    return 'El rol seleccionado no existe en la tabla de cargos.'
+  }
+  return mensaje || 'No se pudo actualizar el rol.'
+}
+
 async function actualizarRol(familia) {
+  const anterior = rolesOriginales.get(familia.id)
+  if (anterior === familia.id_cargo) return
+
+  rolError.value = ''
+  rolSuccess.value = ''
+  rolActualizando.value = familia.id
+
   try {
-    const { error } = await supabase
+    // .select() permite detectar cuando RLS bloquea la fila: en ese caso
+    // Supabase no devuelve error, simplemente actualiza 0 filas.
+    const { data, error } = await supabase
       .from('familias')
       .update({ id_cargo: familia.id_cargo })
       .eq('id', familia.id)
+      .select('id, id_cargo')
+      .maybeSingle()
 
-    if (error) {
-      console.error('Error al actualizar el rol:', error.message)
-      alert('Hubo un error al actualizar el rol.')
-      cargarDatos()
+    if (error) throw error
+
+    if (!data) {
+      throw new Error(
+        'La base de datos no permitió el cambio (se actualizaron 0 filas). ' +
+          'Revisa que tu cuenta de administrador esté bien vinculada.'
+      )
     }
+
+    rolesOriginales.set(familia.id, data.id_cargo)
+    rolSuccess.value =
+      `Rol de ${familia.nombre_familia || 'la familia'} actualizado a ` +
+      `${nombresRol[data.id_cargo] || data.id_cargo}.`
   } catch (e) {
-    console.error('Excepción al actualizar rol:', e)
+    console.error('Error al actualizar el rol:', e)
+    // v-model ya cambió el selector; se restaura el valor real de la BD.
+    if (anterior === undefined) {
+      await cargarDatos()
+    } else {
+      familia.id_cargo = anterior
+    }
+    rolError.value = mensajeErrorRol(e)
+  } finally {
+    rolActualizando.value = null
   }
 }
 
@@ -348,6 +413,26 @@ onMounted(() => {
   border-radius: 0.75rem;
   color: #854d0e;
   font-size: 0.9rem;
+}
+
+.role-alert {
+  margin: 0 1.25rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.role-alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.role-alert--success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
 }
 
 .number-text {

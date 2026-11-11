@@ -284,4 +284,7 @@ order by j.id_jefe_calle;
 -- ============================================================================
 -- Si todas las consultas de duplicados devolvieron 0 filas, puedes ejecutar
 -- `supabase/aplicar_migraciones_pendientes.sql` completo.
+--
+-- Si la sección 10 muestra un administrador con auth_id inválido y el panel
+-- no permite cambiar roles, ejecuta `supabase/diagnostico_admin.sql`.
 -- ============================================================================
